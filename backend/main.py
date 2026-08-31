@@ -10,7 +10,7 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -38,11 +38,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
-# Har browser apna khud ka random workspace ID banata hai (localStorage mein, koi
-# login/password nahi) aur X-Workspace-Id header mein bhejta hai. Isse har user ki
-# API keys, leads, aur scheduled posts sirf unke apne workspace se linked rehte hain —
-# koi shared/global key nahi, aur app banane wale ki apni key kabhi kisi aur session
-# mein use nahi hoti.
 @app.middleware("http")
 async def workspace_middleware(request, call_next):
     workspace_id = request.headers.get("X-Workspace-Id", "default").strip() or "default"
@@ -77,10 +72,10 @@ class GenerateRequest(BaseModel):
 class PublishRequest(BaseModel):
     caption: str
     title: Optional[str] = ""
-    short_caption: Optional[str] = ""  # agar khaali ho to caption hi use hoga
+    short_caption: Optional[str] = ""
     hashtags: Optional[str] = ""
-    location: Optional[str] = ""  # FB/IG location-tag + Blogger location.name
-    labels: Optional[List[str]] = []  # Blogger ke labels/categories
+    location: Optional[str] = ""
+    labels: Optional[List[str]] = []
     media_urls: Optional[List[str]] = []
     platforms: List[str]
 
@@ -88,13 +83,13 @@ class PublishRequest(BaseModel):
 class SchedulePostRequest(BaseModel):
     caption: str
     title: Optional[str] = ""
-    short_caption: Optional[str] = ""  # agar khaali ho to caption hi use hoga
+    short_caption: Optional[str] = ""
     hashtags: Optional[str] = ""
     location: Optional[str] = ""
     labels: Optional[List[str]] = []
     media_urls: Optional[List[str]] = []
     platforms: List[str]
-    scheduled_at: str  # ISO datetime string, treated as UTC
+    scheduled_at: str
 
 
 class LeadCreate(BaseModel):
@@ -163,14 +158,6 @@ async def _try_0x0(client: httpx.AsyncClient, dest_path: str, filename: str) -> 
 
 
 async def _upload_to_free_public_host(dest_path: str, filename: str) -> tuple[str | None, str | None]:
-    """
-    Facebook/Instagram ko media ka public URL chahiye hota hai (wo apne server se khud
-    file fetch karte hain, tumhari machine se nahi). Agar Settings mein koi apna
-    "Public Base URL" (tunnel) nahi diya, to yahan khud file ko free public hosting
-    (pehle catbox.moe, wo fail ho to 0x0.st) par upload kar dete hain, taake tumhe koi
-    link manually manage na karni pade.
-    Return: (url, hosted_on) — hosted_on batata hai kaunsi service kaam aayi.
-    """
     async with httpx.AsyncClient(timeout=120) as client:
         url = await _try_catbox(client, dest_path, filename)
         if url:
@@ -196,17 +183,13 @@ async def upload_media(file: UploadFile = File(...)):
 
     custom_base = cfg.get("PUBLIC_BASE_URL", "").rstrip("/")
     if custom_base:
-        # User ne apna tunnel/domain diya hai — usi se serve karo (zyada tez, apne control mein)
         url = f"{custom_base}/uploads/{safe_name}"
         return {"url": url, "filename": safe_name, "type": media_type, "hosted_on": "self"}
 
-    # Koi Public Base URL nahi diya — auto free hosting try karo (2 services try hoti hain)
     public_url, hosted_on = await _upload_to_free_public_host(dest_path, safe_name)
     if public_url:
         return {"url": public_url, "filename": safe_name, "type": media_type, "hosted_on": hosted_on}
 
-    # Dono free hosting fail ho gayi (internet/firewall issue) — local URL de dete hain lekin
-    # ye FB/IG ke liye kaam nahi karega jab tak khud koi Public Base URL na set karo
     fallback_url = f"http://localhost:8000/uploads/{safe_name}"
     return {
         "url": fallback_url, "filename": safe_name, "type": media_type, "hosted_on": "local",
@@ -257,16 +240,11 @@ def export_scheduled_csv(
     month: Optional[int] = Query(None, ge=1, le=12),
     day: Optional[int] = Query(None, ge=1, le=31),
 ):
-    """
-    CSV export — koi filter na do to sab records, ya year, year+month, ya
-    year+month+day de kar sirf usi period ke records download karo.
-    """
     posts = db.get_scheduled_posts(workspace_id=cfg.current_workspace())
 
     def in_period(p):
         if not p.get("scheduled_at"):
             return False
-        # scheduled_at "...Z" suffix ke sath UTC mein store hota hai
         dt = datetime.fromisoformat(p["scheduled_at"].replace("Z", "+00:00"))
         if year is not None and dt.year != year:
             return False
@@ -350,14 +328,11 @@ def delete_lead(lead_id: int):
     return {"message": "Lead deleted"}
 
 
-# ---------- Settings (API keys, saved to DB PER WORKSPACE so each browser/user has its own) ----------
+# ---------- Settings ----------
 @app.get("/api/settings/keys")
 def get_settings_keys():
     ws = cfg.current_workspace()
     saved = db.get_all_settings(workspace_id=ws)
-    # .env/HF-secret fallback only applies to the owner's own "default" workspace —
-    # see settings_service.get() for why. Keeps this "is a key set" check consistent
-    # with what publishing will actually use.
     env_fallback_allowed = ws == "default"
     return {k: bool(saved.get(k) or (env_fallback_allowed and os.getenv(k))) for k in SETTINGS_KEYS}
 
@@ -373,8 +348,6 @@ def save_settings_keys(payload: SettingsPayload):
 
 @app.post("/api/settings/substack/refresh")
 async def refresh_substack_cookie_endpoint():
-    """Substack ka koi refresh-token system nahi hai, is liye khud email+password se
-    dobara login karke naya session cookie le kar save kar dete hain."""
     from services.substack_service import refresh_substack_cookie
     new_cookie, err = await refresh_substack_cookie()
     if err:
@@ -396,7 +369,44 @@ def check_apis():
     }
 
 
+# ---------- Facebook Login / OAuth Callback - ADDED, NO OLD CODE DELETED ----------
+@app.get("/api/auth/facebook")
+def get_facebook_login_url():
+    FB_APP_ID = cfg.get("FB_APP_ID") or os.getenv("FB_APP_ID") or os.getenv("META_APP_ID")
+    REDIRECT_URI = "https://nextgen-analytics-social-media-tool.fastapicloud.dev/api/auth/callback"
+    SCOPE = "pages_show_list,pages_read_engagement,pages_manage_posts,read_insights,instagram_basic,instagram_manage_insights"
+    if not FB_APP_ID:
+        raise HTTPException(status_code=400, detail="FB_APP_ID Settings me save karo pehle")
+    login_url = f"https://www.facebook.com/v20.0/dialog/oauth?client_id={FB_APP_ID}&redirect_uri={REDIRECT_URI}&scope={SCOPE}&response_type=code"
+    return {"login_url": login_url}
+
+
+@app.get("/api/auth/callback")
+async def facebook_auth_callback(code: str = Query(...), state: Optional[str] = Query(None)):
+    FB_APP_ID = cfg.get("FB_APP_ID") or os.getenv("FB_APP_ID") or os.getenv("META_APP_ID")
+    FB_APP_SECRET = cfg.get("FB_APP_SECRET") or os.getenv("FB_APP_SECRET") or os.getenv("META_APP_SECRET")
+    REDIRECT_URI = "https://nextgen-analytics-social-media-tool.fastapicloud.dev/api/auth/callback"
+    if not FB_APP_ID or not FB_APP_SECRET:
+        raise HTTPException(status_code=400, detail="FB_APP_ID / FB_APP_SECRET Settings me save nahi hai")
+    async with httpx.AsyncClient(timeout=30) as client:
+        token_res = await client.get(
+            "https://graph.facebook.com/v20.0/oauth/access_token",
+            params={
+                "client_id": FB_APP_ID,
+                "client_secret": FB_APP_SECRET,
+                "redirect_uri": REDIRECT_URI,
+                "code": code,
+            }
+        )
+    data = token_res.json()
+    if "access_token" not in data:
+        raise HTTPException(status_code=400, detail=f"Token exchange fail: {data}")
+    long_token = data["access_token"]
+    db.save_settings({"META_ACCESS_TOKEN": long_token}, workspace_id=cfg.current_workspace())
+    frontend_url = os.getenv("FRONTEND_URL", "https://nextgenanalytics.cloud-ip.cc/nextgen-analytics-social-media-tool/settings")
+    return RedirectResponse(url=frontend_url + "?connected=facebook")
+
+
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)
