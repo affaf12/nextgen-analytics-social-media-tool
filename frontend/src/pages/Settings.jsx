@@ -4,18 +4,19 @@ import { usePersistentState } from '../lib/usePersistentState.js'
 
 const GROUPS = [
   {
-    label: 'Facebook OAuth App (Login ke liye zaroori)',
+    label: 'Facebook OAuth App (Login ke liye zaroori - Owner ek baar dalega)',
+    id: 'fb_oauth_app',
     fields: [
-      { key: 'FB_APP_ID', label: 'Facebook App ID' },
+      { key: 'FB_APP_ID', label: 'Facebook App ID (583036911532091)' },
       { key: 'FB_APP_SECRET', label: 'Facebook App Secret' },
     ],
   },
   {
-    label: 'Meta (Facebook + Instagram)',
+    label: 'Meta (Facebook + Instagram) - Auto fill after Connect',
     fields: [
-      { key: 'META_ACCESS_TOKEN', label: 'Meta Access Token' },
-      { key: 'FB_PAGE_ID', label: 'Facebook Page ID' },
-      { key: 'IG_USER_ID', label: 'Instagram Business User ID' },
+      { key: 'META_ACCESS_TOKEN', label: 'Meta Access Token (auto)' },
+      { key: 'FB_PAGE_ID', label: 'Facebook Page ID (auto)' },
+      { key: 'IG_USER_ID', label: 'Instagram Business User ID (auto)' },
     ],
   },
   {
@@ -85,16 +86,28 @@ export default function Settings() {
   const [error, setError] = useState('')
   const [substackRefreshing, setSubstackRefreshing] = useState(false)
   const [substackRefreshMsg, setSubstackRefreshMsg] = useState('')
+  const [connecting, setConnecting] = useState(false)
 
   const load = async () => {
     try {
-      setConnected(await api.getSettingsKeys())
+      const data = await api.getSettingsKeys()
+      setConnected(data)
     } catch (e) {
       setError(e.message)
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { 
+    load()
+    // OAuth ke baad ?connected=facebook aaye to success dikhao
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('connected') === 'facebook') {
+      setSaved(false)
+      // thoda wait karke reload karo taake backend token save kar le
+      setTimeout(() => load(), 1000)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const handleChange = (key, value) => {
     setForm((prev) => ({...prev, [key]: value }))
@@ -118,6 +131,23 @@ export default function Settings() {
     }
   }
 
+  const handleFacebookConnect = async () => {
+    setConnecting(true)
+    setError('')
+    try {
+      const res = await api.getFacebookLoginUrl()
+      if (res.login_url) {
+        window.location.href = res.login_url
+      } else {
+        setError('Login URL nahi mila')
+      }
+    } catch (e) {
+      setError(e.message || 'Connect fail - FB_APP_ID check karo')
+    } finally {
+      setConnecting(false)
+    }
+  }
+
   const handleSubstackRefresh = async () => {
     setSubstackRefreshing(true)
     setSubstackRefreshMsg('')
@@ -134,6 +164,8 @@ export default function Settings() {
     }
   }
 
+  const isFbAppConfigured = connected.FB_APP_ID || connected.META_APP_ID || connected.FACEBOOK_APP_ID || connected.FB_APP_SECRET
+
   return (
     <div>
       <header className="mb-8">
@@ -144,7 +176,33 @@ export default function Settings() {
         </p>
       </header>
 
-      {error && <div className="text-coral text-sm font-mono mb-4">{error}</div>}
+      {error && <div className="text-coral text-sm font-mono mb-4 bg-coral/10 border border-coral/20 p-3 rounded">{error}</div>}
+
+      {/* FIX: Facebook One-Click Connect for all users */}
+      <div className="bg-surface border border-line rounded-xl p-5 mb-6">
+        <h2 className="font-display font-semibold text-sm text-offwhite mb-3">One-Click Connect (Har user ke liye)</h2>
+        <p className="text-xs text-muted mb-4">
+          Owner ek baar upar App ID/Secret save karega. Uske baad har banda sirf ye button dabayega, uska Page + Instagram auto connect ho jayega. Bar bar API dalne ki zarurat nahi.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            id="fb-connect-btn"
+            name="fb-connect-btn"
+            onClick={handleFacebookConnect}
+            disabled={connecting || !isFbAppConfigured}
+            className="bg-[#1877F2] text-white text-sm font-semibold rounded-lg px-5 py-2.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            {connecting ? 'Redirecting...' : 'Connect with Facebook / Instagram'}
+          </button>
+          {!isFbAppConfigured && <span className="text-xs text-coral">Pehle upar FB_APP_ID + FB_APP_SECRET save karo</span>}
+          {isFbAppConfigured && connected.META_ACCESS_TOKEN && <span className="text-xs text-signal">✓ Connected</span>}
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-xs font-mono">
+          <div className="flex justify-between"><span className="text-muted">Meta Token</span><span className={connected.META_ACCESS_TOKEN ? 'text-signal' : 'text-muted'}>{connected.META_ACCESS_TOKEN ? '✓' : '✗'}</span></div>
+          <div className="flex justify-between"><span className="text-muted">FB Page</span><span className={connected.FB_PAGE_ID ? 'text-signal' : 'text-muted'}>{connected.FB_PAGE_ID ? '✓' : '✗'}</span></div>
+          <div className="flex justify-between"><span className="text-muted">Instagram</span><span className={connected.IG_USER_ID ? 'text-signal' : 'text-muted'}>{connected.IG_USER_ID ? '✓' : '✗'}</span></div>
+        </div>
+      </div>
 
       <div className="space-y-6">
         {GROUPS.map((group) => (
@@ -154,14 +212,17 @@ export default function Settings() {
               {group.fields.map((f) => (
                 <div key={f.key}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs text-muted">{f.label}</label>
+                    <label htmlFor={f.key} className="text-xs text-muted">{f.label}</label>
                     <span className={`flex items-center gap-1.5 text- font-mono ${connected[f.key]? 'text-signal' : 'text-muted'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${connected[f.key]? 'bg-signal pulse' : 'bg-line'}`} />
                       {connected[f.key]? 'Connected' : 'Not set'}
                     </span>
                   </div>
                   <input
+                    id={f.key}
+                    name={f.key}
                     type="password"
+                    autoComplete="off"
                     value={form[f.key]?? ''}
                     onChange={(e) => handleChange(f.key, e.target.value)}
                     placeholder="Enter your API key"
@@ -173,6 +234,8 @@ export default function Settings() {
             {group.id === 'substack' && (
               <div className="mt-4 pt-4 border-t border-line">
                 <button
+                  id="substack-refresh-btn"
+                  name="substack-refresh-btn"
                   onClick={handleSubstackRefresh}
                   disabled={substackRefreshing}
                   className="text-xs font-medium text-signal border border-signal/40 rounded-lg px-3 py-1.5 hover:bg-signal/10 disabled:opacity-50"
@@ -192,6 +255,8 @@ export default function Settings() {
 
       <div className="sticky bottom-6 mt-6">
         <button
+          id="save-keys-btn"
+          name="save-keys-btn"
           onClick={handleSave}
           disabled={saving || Object.values(form).every((v) =>!v?.trim())}
           className="w-full bg-signal text-ink font-semibold text-sm rounded-lg py-2.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-glow"
