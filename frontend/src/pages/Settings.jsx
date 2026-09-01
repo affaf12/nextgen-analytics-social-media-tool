@@ -4,6 +4,13 @@ import { usePersistentState } from '../lib/usePersistentState.js'
 
 const GROUPS = [
   {
+    label: 'Facebook OAuth App (Login ke liye zaroori)',
+    fields: [
+      { key: 'FB_APP_ID', label: 'Facebook App ID' },
+      { key: 'FB_APP_SECRET', label: 'Facebook App Secret' },
+    ],
+  },
+  {
     label: 'Meta (Facebook + Instagram)',
     fields: [
       { key: 'META_ACCESS_TOKEN', label: 'Meta Access Token' },
@@ -90,12 +97,12 @@ export default function Settings() {
   useEffect(() => { load() }, [])
 
   const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    setForm((prev) => ({...prev, [key]: value }))
     setSaved(false)
   }
 
   const handleSave = async () => {
-    const filled = Object.fromEntries(Object.entries(form).filter(([, v]) => (v || '').trim() !== ''))
+    const filled = Object.fromEntries(Object.entries(form).filter(([, v]) => (v || '').trim()!== ''))
     if (Object.keys(filled).length === 0) return
     setSaving(true)
     setError('')
@@ -130,7 +137,7 @@ export default function Settings() {
   return (
     <div>
       <header className="mb-8">
-        <div className="font-mono text-[11px] text-signal mb-1">05 · CHANNELS</div>
+        <div className="font-mono text- text-signal mb-1">05 · CHANNELS</div>
         <h1 className="font-display font-bold text-2xl text-offwhite">API keys & connections</h1>
         <p className="text-muted text-sm mt-1">
           Ek baar keys save karo, hamesha yahan se hi connected rahenge — dobara <code className="text-saffron">.env</code> edit nahi karna padega.
@@ -148,14 +155,14 @@ export default function Settings() {
                 <div key={f.key}>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs text-muted">{f.label}</label>
-                    <span className={`flex items-center gap-1.5 text-[10px] font-mono ${connected[f.key] ? 'text-signal' : 'text-muted'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${connected[f.key] ? 'bg-signal pulse' : 'bg-line'}`} />
-                      {connected[f.key] ? 'Connected' : 'Not set'}
+                    <span className={`flex items-center gap-1.5 text- font-mono ${connected[f.key]? 'text-signal' : 'text-muted'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${connected[f.key]? 'bg-signal pulse' : 'bg-line'}`} />
+                      {connected[f.key]? 'Connected' : 'Not set'}
                     </span>
                   </div>
                   <input
                     type="password"
-                    value={form[f.key] ?? ''}
+                    value={form[f.key]?? ''}
                     onChange={(e) => handleChange(f.key, e.target.value)}
                     placeholder="Enter your API key"
                     className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/50 outline-none focus:border-signal font-mono"
@@ -170,10 +177,10 @@ export default function Settings() {
                   disabled={substackRefreshing}
                   className="text-xs font-medium text-signal border border-signal/40 rounded-lg px-3 py-1.5 hover:bg-signal/10 disabled:opacity-50"
                 >
-                  {substackRefreshing ? 'Refreshing…' : 'Refresh cookie now (email/password se)'}
+                  {substackRefreshing? 'Refreshing…' : 'Refresh cookie now (email/password se)'}
                 </button>
                 {substackRefreshMsg && <span className="ml-3 text-xs text-signal">{substackRefreshMsg}</span>}
-                <p className="text-[11px] text-muted mt-2">
+                <p className="text- text-muted mt-2">
                   Pehle upar Email + Password save karo, phir ye button dabao — naya session cookie khud le kar save ho jayegi (koi DevTools nahi kholni parti).
                   Agar Substack login pe captcha maang le to ye automation fail hogi, tab manual cookie hi copy karni paregi.
                 </p>
@@ -186,10 +193,10 @@ export default function Settings() {
       <div className="sticky bottom-6 mt-6">
         <button
           onClick={handleSave}
-          disabled={saving || Object.values(form).every((v) => !v?.trim())}
+          disabled={saving || Object.values(form).every((v) =>!v?.trim())}
           className="w-full bg-signal text-ink font-semibold text-sm rounded-lg py-2.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-glow"
         >
-          {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save keys'}
+          {saving? 'Saving…' : saved? 'Saved ✓' : 'Save keys'}
         </button>
       </div>
 
