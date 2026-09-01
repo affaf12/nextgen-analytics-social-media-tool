@@ -20,7 +20,12 @@ from services.llm_service import local_llm_generate
 from services.publisher import publish_to_platforms
 from services import settings_service as cfg
 from services.scheduler_service import start_scheduler, stop_scheduler
-from crm.models import CRM_DB, VALID_STATUSES, SETTINGS_KEYS
+from crm.models import CRM_DB, VALID_STATUSES, SETTINGS_KEYS as BASE_SETTINGS_KEYS
+# Extend allowed keys to include Facebook OAuth App credentials
+SETTINGS_KEYS = list(BASE_SETTINGS_KEYS)
+for _k in ["FB_APP_ID", "FB_APP_SECRET", "META_APP_ID", "META_APP_SECRET"]:
+    if _k not in SETTINGS_KEYS:
+        SETTINGS_KEYS.append(_k)
 
 app = FastAPI(title="NextGen Analytics - Social Media Tool")
 
