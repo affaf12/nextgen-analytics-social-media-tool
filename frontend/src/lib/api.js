@@ -30,9 +30,21 @@ async function request(path, options = {}) {
     },
     ...options,
   })
-  const data = await res.json().catch(() => ({}))
+  
+  // Try to parse JSON, but handle non-JSON responses
+  let data
+  const text = await res.text()
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch {
+    data = { raw: text }
+  }
+
   if (!res.ok) {
-    throw new Error(data.detail ? JSON.stringify(data.detail) : `Request failed (${res.status})`)
+    const detail = data.detail || data.message || `Request failed (${res.status})`
+    // detail object ho to stringify mat karo, readable message do
+    const msg = typeof detail === 'string' ? detail : JSON.stringify(detail)
+    throw new Error(msg)
   }
   return data
 }
@@ -43,7 +55,9 @@ async function downloadFile(path) {
   const res = await fetch(`${BASE_URL}${path}`, { headers: { 'X-Workspace-Id': getWorkspaceId() } })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.detail ? JSON.stringify(data.detail) : `Request failed (${res.status})`)
+    const detail = data.detail || `Request failed (${res.status})`
+    const msg = typeof detail === 'string' ? detail : JSON.stringify(detail)
+    throw new Error(msg)
   }
   const blob = await res.blob()
   const disposition = res.headers.get('Content-Disposition') || ''
@@ -60,8 +74,10 @@ async function downloadFile(path) {
 }
 
 export const api = {
+  // Content
   generate: (payload) => request('/api/generate', { method: 'POST', body: JSON.stringify(payload) }),
   publish: (payload) => request('/api/post/publish', { method: 'POST', body: JSON.stringify(payload) }),
+  publishNow: (payload) => request('/api/publish', { method: 'POST', body: JSON.stringify(payload) }),
   uploadMedia: (file) => {
     const form = new FormData()
     form.append('file', file)
@@ -79,7 +95,9 @@ export const api = {
     if (month) params.set('month', month)
     if (day) params.set('day', day)
     const qs = params.toString()
-    return downloadFile(`/api/schedule/export${qs ? `?${qs}` : ''}`)
+    // Support both old and new export routes
+    const path = `/api/reports/csv${qs ? `?${qs}` : ''}`
+    return downloadFile(path)
   },
 
   // CRM
@@ -94,4 +112,13 @@ export const api = {
   getSettingsKeys: () => request('/api/settings/keys'),
   saveSettingsKeys: (values) => request('/api/settings/keys', { method: 'POST', body: JSON.stringify({ values }) }),
   refreshSubstackCookie: () => request('/api/settings/substack/refresh', { method: 'POST' }),
+
+  // --- NEW: OAuth Connect for All Users (One-Click) ---
+  // Owner ek baar FB_APP_ID set karega, baad me har user sirf ye call karega
+  getFacebookLoginUrl: () => request('/api/auth/facebook'),
+  getMyPages: () => request('/api/auth/pages'),
+  
+  // For future: LinkedIn, Google Blogger OAuth (same pattern)
+  getLinkedInLoginUrl: () => request('/api/auth/linkedin'),
+  getGoogleLoginUrl: () => request('/api/auth/google'),
 }
