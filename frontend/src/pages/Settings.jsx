@@ -2,15 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import { usePersistentState } from '../lib/usePersistentState.js'
 
+// SECURE VERSION: FB_APP_ID / SECRET frontend pe show nahi honge
+// Owner sirf backend env me set karega: FACEBOOK_APP_ID, FACEBOOK_APP_SECRET
 const GROUPS = [
-  {
-    label: 'Facebook OAuth App (Login ke liye zaroori - Owner ek baar dalega)',
-    id: 'fb_oauth_app',
-    fields: [
-      { key: 'FB_APP_ID', label: 'Facebook App ID (583036911532091)' },
-      { key: 'FB_APP_SECRET', label: 'Facebook App Secret' },
-    ],
-  },
   {
     label: 'Meta (Facebook + Instagram) - Auto fill after Connect',
     fields: [
@@ -23,7 +17,7 @@ const GROUPS = [
     label: 'Threads',
     fields: [
       { key: 'THREADS_USER_ID', label: 'Threads User ID' },
-      { key: 'THREADS_ACCESS_TOKEN', label: 'Threads Access Token (optional, defaults to Meta token)' },
+      { key: 'THREADS_ACCESS_TOKEN', label: 'Threads Access Token (optional)' },
     ],
   },
   {
@@ -40,18 +34,13 @@ const GROUPS = [
     fields: [
       { key: 'LINKEDIN_ACCESS_TOKEN', label: 'Access Token' },
       { key: 'LINKEDIN_ORG_ID', label: 'Company Page Org ID (optional)' },
-      { key: 'LINKEDIN_ORG_URN', label: 'Company Page Org URN (optional, urn:li:organization:...)' },
-      { key: 'LINKEDIN_PERSON_URN', label: 'Person URN (optional, auto-fetched otherwise)' },
     ],
   },
   {
     label: 'Blogger',
     fields: [
       { key: 'BLOGGER_BLOG_ID', label: 'Blog ID' },
-      { key: 'BLOGGER_ACCESS_TOKEN', label: 'Google OAuth Access Token (blogger scope)' },
-      { key: 'BLOGGER_REFRESH_TOKEN', label: 'Refresh Token (optional — token auto-refresh ke liye)' },
-      { key: 'BLOGGER_CLIENT_ID', label: 'OAuth Client ID (refresh ke liye zaroori)' },
-      { key: 'BLOGGER_CLIENT_SECRET', label: 'OAuth Client Secret (refresh ke liye zaroori)' },
+      { key: 'BLOGGER_ACCESS_TOKEN', label: 'Google OAuth Access Token' },
     ],
   },
   {
@@ -60,38 +49,25 @@ const GROUPS = [
       { key: 'MEDIUM_ACCESS_TOKEN', label: 'Integration Token' },
     ],
   },
-  {
-    label: 'Substack (UNOFFICIAL — Substack ka koi official posting API nahi hai)',
-    id: 'substack',
-    fields: [
-      { key: 'SUBSTACK_PUBLICATION_URL', label: 'Publication URL (jaise yourname.substack.com)' },
-      { key: 'SUBSTACK_EMAIL', label: 'Substack login email (auto cookie-refresh ke liye)' },
-      { key: 'SUBSTACK_PASSWORD', label: 'Substack login password (auto cookie-refresh ke liye)' },
-      { key: 'SUBSTACK_COOKIE', label: 'Session Cookie (substack.sid) — manual bhi daal sakte ho, ya neeche "Refresh" button use karo' },
-    ],
-  },
-  {
-    label: 'Media hosting',
-    fields: [
-      { key: 'PUBLIC_BASE_URL', label: 'Public Base URL (optional — khaali chorne par khud free public hosting use hogi)' },
-    ],
-  },
 ]
 
 export default function Settings() {
   const [connected, setConnected] = useState({})
+  const [check, setCheck] = useState({})
   const [form, setForm] = usePersistentState('settings.form', {})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
-  const [substackRefreshing, setSubstackRefreshing] = useState(false)
-  const [substackRefreshMsg, setSubstackRefreshMsg] = useState('')
   const [connecting, setConnecting] = useState(false)
 
   const load = async () => {
     try {
-      const data = await api.getSettingsKeys()
-      setConnected(data)
+      const [keysData, checkData] = await Promise.all([
+        api.getSettingsKeys(),
+        api.checkSettings().catch(() => ({}))
+      ])
+      setConnected(keysData)
+      setCheck(checkData)
     } catch (e) {
       setError(e.message)
     }
@@ -99,11 +75,8 @@ export default function Settings() {
 
   useEffect(() => { 
     load()
-    // OAuth ke baad ?connected=facebook aaye to success dikhao
     const params = new URLSearchParams(window.location.search)
     if (params.get('connected') === 'facebook') {
-      setSaved(false)
-      // thoda wait karke reload karo taake backend token save kar le
       setTimeout(() => load(), 1000)
       window.history.replaceState({}, '', window.location.pathname)
     }
@@ -139,32 +112,16 @@ export default function Settings() {
       if (res.login_url) {
         window.location.href = res.login_url
       } else {
-        setError('Login URL nahi mila')
+        setError('Login URL nahi mila - Admin se contact karo')
       }
     } catch (e) {
-      setError(e.message || 'Connect fail - FB_APP_ID check karo')
+      setError(e.message || 'App not configured - Admin se contact karo')
     } finally {
       setConnecting(false)
     }
   }
 
-  const handleSubstackRefresh = async () => {
-    setSubstackRefreshing(true)
-    setSubstackRefreshMsg('')
-    setError('')
-    try {
-      await api.refreshSubstackCookie()
-      setSubstackRefreshMsg('Cookie refresh ho gayi ✓')
-      load()
-    } catch (e) {
-      setSubstackRefreshMsg('')
-      setError(e.message)
-    } finally {
-      setSubstackRefreshing(false)
-    }
-  }
-
-  const isFbAppConfigured = connected.FB_APP_ID || connected.META_APP_ID || connected.FACEBOOK_APP_ID || connected.FB_APP_SECRET
+  const isFbAppConfigured = check.facebook_app || check.fb_app_id_set
 
   return (
     <div>
@@ -172,36 +129,46 @@ export default function Settings() {
         <div className="font-mono text- text-signal mb-1">05 · CHANNELS</div>
         <h1 className="font-display font-bold text-2xl text-offwhite">API keys & connections</h1>
         <p className="text-muted text-sm mt-1">
-          Ek baar keys save karo, hamesha yahan se hi connected rahenge — dobara <code className="text-saffron">.env</code> edit nahi karna padega.
+          Ek baar Connect karo, hamesha connected rahega. App Secret kabhi frontend pe show nahi hota.
         </p>
       </header>
 
       {error && <div className="text-coral text-sm font-mono mb-4 bg-coral/10 border border-coral/20 p-3 rounded">{error}</div>}
 
-      {/* FIX: Facebook One-Click Connect for all users */}
+      {/* Secure Facebook Connect - No App ID/Secret shown to users */}
       <div className="bg-surface border border-line rounded-xl p-5 mb-6">
-        <h2 className="font-display font-semibold text-sm text-offwhite mb-3">One-Click Connect (Har user ke liye)</h2>
-        <p className="text-xs text-muted mb-4">
-          Owner ek baar upar App ID/Secret save karega. Uske baad har banda sirf ye button dabayega, uska Page + Instagram auto connect ho jayega. Bar bar API dalne ki zarurat nahi.
-        </p>
-        <div className="flex items-center gap-3">
-          <button
-            id="fb-connect-btn"
-            name="fb-connect-btn"
-            onClick={handleFacebookConnect}
-            disabled={connecting || !isFbAppConfigured}
-            className="bg-[#1877F2] text-white text-sm font-semibold rounded-lg px-5 py-2.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            {connecting ? 'Redirecting...' : 'Connect with Facebook / Instagram'}
-          </button>
-          {!isFbAppConfigured && <span className="text-xs text-coral">Pehle upar FB_APP_ID + FB_APP_SECRET save karo</span>}
-          {isFbAppConfigured && connected.META_ACCESS_TOKEN && <span className="text-xs text-signal">✓ Connected</span>}
-        </div>
-        <div className="mt-3 grid grid-cols-3 gap-2 text-xs font-mono">
-          <div className="flex justify-between"><span className="text-muted">Meta Token</span><span className={connected.META_ACCESS_TOKEN ? 'text-signal' : 'text-muted'}>{connected.META_ACCESS_TOKEN ? '✓' : '✗'}</span></div>
-          <div className="flex justify-between"><span className="text-muted">FB Page</span><span className={connected.FB_PAGE_ID ? 'text-signal' : 'text-muted'}>{connected.FB_PAGE_ID ? '✓' : '✗'}</span></div>
-          <div className="flex justify-between"><span className="text-muted">Instagram</span><span className={connected.IG_USER_ID ? 'text-signal' : 'text-muted'}>{connected.IG_USER_ID ? '✓' : '✗'}</span></div>
-        </div>
+        <h2 className="font-display font-semibold text-sm text-offwhite mb-3 flex items-center gap-2">
+          Facebook & Instagram
+          <span className={`w-2 h-2 rounded-full ${isFbAppConfigured ? 'bg-signal' : 'bg-coral'}`}></span>
+          <span className="text-xs font-mono text-muted">{isFbAppConfigured ? 'Ready' : 'Setup needed by Admin'}</span>
+        </h2>
+        
+        {!isFbAppConfigured ? (
+          <div className="bg-ink border border-line rounded-lg p-3">
+            <p className="text-xs text-coral">⚠️ Facebook App Admin ne abhi configure nahi kiya. Backend env me FACEBOOK_APP_ID set karna hai.</p>
+            <p className="text-xs text-muted mt-1">Ye sirf owner ka kaam hai, users ko App ID/Secret dikhega hi nahi.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-muted">
+              Har user sirf ye button dabayega. App ID public hai, App Secret sirf backend me safe hai - kabhi frontend pe nahi ayega.
+            </p>
+            <button
+              id="fb-connect-btn"
+              name="fb-connect-btn"
+              onClick={handleFacebookConnect}
+              disabled={connecting}
+              className="bg-[#1877F2] text-white text-sm font-semibold rounded-lg px-5 py-2.5 hover:brightness-110 disabled:opacity-40 transition"
+            >
+              {connecting ? 'Redirecting...' : 'Connect with Facebook / Instagram'}
+            </button>
+            <div className="grid grid-cols-3 gap-2 text-xs font-mono mt-2">
+              <div className="flex justify-between"><span className="text-muted">Meta Token</span><span className={connected.META_ACCESS_TOKEN ? 'text-signal' : 'text-muted'}>{connected.META_ACCESS_TOKEN ? '✓' : '✗'}</span></div>
+              <div className="flex justify-between"><span className="text-muted">FB Page</span><span className={connected.FB_PAGE_ID ? 'text-signal' : 'text-muted'}>{connected.FB_PAGE_ID ? '✓' : '✗'}</span></div>
+              <div className="flex justify-between"><span className="text-muted">Instagram</span><span className={connected.IG_USER_ID ? 'text-signal' : 'text-muted'}>{connected.IG_USER_ID ? '✓' : '✗'}</span></div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -225,30 +192,12 @@ export default function Settings() {
                     autoComplete="off"
                     value={form[f.key]?? ''}
                     onChange={(e) => handleChange(f.key, e.target.value)}
-                    placeholder="Enter your API key"
+                    placeholder={f.key.includes('TOKEN') ? 'Auto-filled after Connect' : 'Enter key'}
                     className="w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/50 outline-none focus:border-signal font-mono"
                   />
                 </div>
               ))}
             </div>
-            {group.id === 'substack' && (
-              <div className="mt-4 pt-4 border-t border-line">
-                <button
-                  id="substack-refresh-btn"
-                  name="substack-refresh-btn"
-                  onClick={handleSubstackRefresh}
-                  disabled={substackRefreshing}
-                  className="text-xs font-medium text-signal border border-signal/40 rounded-lg px-3 py-1.5 hover:bg-signal/10 disabled:opacity-50"
-                >
-                  {substackRefreshing? 'Refreshing…' : 'Refresh cookie now (email/password se)'}
-                </button>
-                {substackRefreshMsg && <span className="ml-3 text-xs text-signal">{substackRefreshMsg}</span>}
-                <p className="text- text-muted mt-2">
-                  Pehle upar Email + Password save karo, phir ye button dabao — naya session cookie khud le kar save ho jayegi (koi DevTools nahi kholni parti).
-                  Agar Substack login pe captcha maang le to ye automation fail hogi, tab manual cookie hi copy karni paregi.
-                </p>
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -263,11 +212,6 @@ export default function Settings() {
         >
           {saving? 'Saving…' : saved? 'Saved ✓' : 'Save keys'}
         </button>
-      </div>
-
-      <div className="mt-6 bg-surface border border-line rounded-xl px-5 py-3.5 flex items-center justify-between">
-        <span className="text-sm text-offwhite">Local LLM (Ollama)</span>
-        <span className="text-xs font-mono text-muted">.env se control hota hai — OLLAMA_URL / LOCAL_MODEL</span>
       </div>
     </div>
   )
