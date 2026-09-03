@@ -11,15 +11,18 @@ const PLATFORM_OPTIONS = [
   { id: 'linkedin_page', label: 'LinkedIn Page' },
   { id: 'blogger', label: 'Blogger' },
   { id: 'substack', label: 'Substack' },
+  { id: 'tiktok', label: 'TikTok' },
 ]
 
 const SHORT_TEXT_PLATFORMS = ['threads', 'twitter']
 
 const BLOG_PLATFORMS = ['blogger', 'substack']
 
-const HASHTAG_PLATFORMS = ['fb_page', 'ig', 'threads', 'twitter', 'linkedin_profile', 'linkedin_page']
+const HASHTAG_PLATFORMS = ['fb_page', 'ig', 'threads', 'twitter', 'linkedin_profile', 'linkedin_page', 'tiktok']
 
 const LOCATION_PLATFORMS = ['fb_page', 'ig', 'blogger']
+
+const VIDEO_PLATFORMS = ['tiktok', 'ig', 'fb_page', 'threads']
 
 const STATUS_STYLES = {
   published: 'text-signal border-signal/40 bg-signal/10',
@@ -28,22 +31,18 @@ const STATUS_STYLES = {
 }
 
 function defaultScheduleValue() {
-  const d = new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
+  const d = new Date(Date.now() + 60 * 60 * 1000)
   d.setSeconds(0, 0)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// Har region ka apna time zone select karne ke liye — browser jo bhi list de sake wo use
-// karo (modern browsers), warna ek chota fallback list rakh do taake dropdown khaali na ho
 function getTimezoneList() {
   try {
     if (typeof Intl.supportedValuesOf === 'function') {
       return Intl.supportedValuesOf('timeZone')
     }
-  } catch {
-    // ignore, fallback neeche
-  }
+  } catch {}
   return [
     'Pacific/Midway', 'Pacific/Honolulu', 'America/Anchorage', 'America/Los_Angeles',
     'America/Denver', 'America/Chicago', 'America/New_York', 'America/Sao_Paulo',
@@ -55,18 +54,11 @@ function getTimezoneList() {
   ]
 }
 
-// "2026-08-09T15:39" jaisi naive datetime-local value ko kisi bhi diye hue IANA timezone
-// mein "wall clock time" maan kar sahi UTC instant mein convert karta hai. Native JS Date
-// sirf browser ki apni local timezone ko samajhta hai, isliye ye standard trick use karte
-// hain: pehle UTC maan kar Date banao, phir target timezone mein format karke offset
-// nikaalo, phir us offset se sahi UTC time hasil karo.
 function zonedTimeToUtcIso(dateTimeLocalStr, timeZone) {
   const [datePart, timePart] = dateTimeLocalStr.split('T')
   const [year, month, day] = datePart.split('-').map(Number)
   const [hour, minute] = timePart.split(':').map(Number)
-
   const asUTC = Date.UTC(year, month - 1, day, hour, minute)
-
   const dtf = new Intl.DateTimeFormat('en-US', {
     timeZone, hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -111,6 +103,7 @@ export default function Publish() {
   const needsLocation = platforms.some((p) => LOCATION_PLATFORMS.includes(p))
   const needsLabels = platforms.includes('blogger')
   const igNeedsMedia = platforms.includes('ig') && !mediaUrl
+  const tiktokNeedsVideo = platforms.includes('tiktok') && (!mediaUrl || mediaType !== 'video')
 
   const togglePlatform = (id) => {
     setPlatforms((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
@@ -129,7 +122,7 @@ export default function Publish() {
       if (res.hosted_on === 'local') {
         setMediaHostWarning(res.warning || 'Free public hosting fail hui — ye URL Facebook/Instagram ke liye kaam nahi karega.')
       } else if (res.hosted_on === 'catbox.moe') {
-        setMediaHostWarning('') // sab theek, koi warning nahi
+        setMediaHostWarning('')
       }
     } catch (err) {
       setError(err.message)
@@ -190,7 +183,7 @@ export default function Publish() {
         <div className="font-mono text-[11px] text-signal mb-1">02 · BROADCAST</div>
         <h1 className="font-display font-bold text-2xl text-offwhite">Publish to channels</h1>
         <p className="text-muted text-sm mt-1">
-          Ek caption, image ya video, jitne channels chaho — abhi ya schedule karke.
+          Ek caption, image ya video, jitne channels chaho — abhi ya schedule karke. TikTok ke liye video zaroori!
         </p>
       </header>
 
@@ -215,10 +208,10 @@ export default function Publish() {
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             rows={4}
-            placeholder="Apna final caption yahan paste karo…"
+            placeholder="Apna final caption yahan paste karo… TikTok pe ye caption + hashtags jayega"
             className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none resize-none"
           />
-          <p className="text-[11px] text-muted mt-1">Ye caption Facebook, Instagram, LinkedIn aur Blogger sab par jayega.</p>
+          <p className="text-[11px] text-muted mt-1">Ye caption Facebook, Instagram, LinkedIn, Blogger, TikTok sab par jayega.</p>
         </div>
 
         {needsShortCaption && (
@@ -234,14 +227,14 @@ export default function Publish() {
               className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none resize-none"
             />
             <p className="text-[11px] text-muted mt-1">
-              Ye box Threads aur Twitter/X dono share karte hain (dono jagah kam text chalta hai). Baaki sab platforms upar wala caption use karenge.
-              {shortCaption.length > 0 && <span className="ml-2 font-mono">{shortCaption.length}/280 (Twitter limit)</span>}
+              Ye box Threads aur Twitter/X dono share karte hain. Baaki sab platforms upar wala caption use karenge.
+              {shortCaption.length > 0 && <span className="ml-2 font-mono">{shortCaption.length}/280</span>}
             </p>
           </div>
         )}
 
         <div>
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">Media (image / video)</label>
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">Media (image / video) {platforms.includes('tiktok') && <span className="text-[#FF0050]">- TikTok ke liye VIDEO zaroori (MP4)</span>}</label>
           <div className="mt-2 flex items-center gap-3">
             <label className="cursor-pointer text-xs font-medium bg-ink border border-line rounded-lg px-3 py-2 text-offwhite hover:border-signal transition">
               {uploading ? 'Uploading…' : 'Choose file'}
@@ -270,18 +263,22 @@ export default function Publish() {
           {mediaUrl && (
             <p className="text-[10px] text-muted mt-1 font-mono break-all">
               URL: <a href={mediaUrl} target="_blank" rel="noreferrer" className="text-signal underline">{mediaUrl}</a>
-              {' '}(is link ko naye tab mein khol kar check karo — agar image/video khud khulti hai to URL public hai, warna galat hai)
             </p>
           )}
           {mediaHostWarning && (
             <p className="text-[11px] text-coral mt-1 font-medium">⚠ {mediaHostWarning}</p>
           )}
           <p className="text-[11px] text-muted mt-1">
-            Facebook/Instagram/Threads ko publicly reachable URL chahiye — ye khud-ba-khud free hosting (catbox.moe) se ho jayega, koi link manually dalne ki zarurat nahi. Apna tez/private hosting chahiye to Settings mein "Public Base URL" (tunnel) set kar sakte ho.
+            Facebook/Instagram/Threads ko publicly reachable URL chahiye — auto free hosting se ho jayega. TikTok ke liye MP4 video zaroori hai.
           </p>
           {igNeedsMedia && (
             <p className="text-[11px] text-coral mt-1 font-medium">
-              ⚠ Instagram ke liye image ya video zaroori hai — media ke bagair sirf IG skip/error hoga, baaki selected platforms theek publish ho jayenge.
+              ⚠ Instagram ke liye image ya video zaroori hai
+            </p>
+          )}
+          {tiktokNeedsVideo && (
+            <p className="text-[11px] text-[#FF0050] mt-1 font-medium">
+              ⚠ TikTok ke liye VIDEO zaroori hai — sirf image se TikTok post nahi hoga! MP4/MOV upload karo.
             </p>
           )}
         </div>
@@ -289,22 +286,22 @@ export default function Publish() {
         {needsHashtags && (
           <div>
             <label className="text-xs font-medium text-muted uppercase tracking-wide">
-              Hashtags <span className="text-muted/60 normal-case">(optional, space ya comma se alag karo)</span>
+              Hashtags <span className="text-muted/60 normal-case">(TikTok pe bhi kaam karte hain!)</span>
             </label>
             <input
               value={hashtags}
               onChange={(e) => setHashtags(e.target.value)}
-              placeholder="#AI #Karachi #Automation"
+              placeholder="#AI #Karachi #TikTokViral #Automation"
               className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none"
             />
-            <p className="text-[11px] text-muted mt-1">Caption ke aakhir mein add ho jayenge — FB, IG, Threads, Twitter, LinkedIn sab par.</p>
+            <p className="text-[11px] text-muted mt-1">Caption ke aakhir mein add ho jayenge — TikTok pe viral hone ke liye important!</p>
           </div>
         )}
 
         {needsLocation && (
           <div>
             <label className="text-xs font-medium text-muted uppercase tracking-wide">
-              Location <span className="text-muted/60 normal-case">(optional — ye post kahan se ho rahi hai)</span>
+              Location <span className="text-muted/60 normal-case">(optional)</span>
             </label>
             <input
               value={location}
@@ -312,16 +309,13 @@ export default function Publish() {
               placeholder="Karachi, Pakistan"
               className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none"
             />
-            <p className="text-[11px] text-muted mt-1">
-              Facebook/Instagram par location-tag lagega (nazdeekitareen matching place), Blogger par post ki location field mein jayega.
-            </p>
           </div>
         )}
 
         {needsLabels && (
           <div>
             <label className="text-xs font-medium text-muted uppercase tracking-wide">
-              Blogger Labels <span className="text-muted/60 normal-case">(optional, comma se alag karo)</span>
+              Blogger Labels <span className="text-muted/60 normal-case">(optional)</span>
             </label>
             <input
               value={labelsText}
@@ -329,12 +323,11 @@ export default function Publish() {
               placeholder="AI, Automation, Business"
               className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none"
             />
-            <p className="text-[11px] text-muted mt-1">Blogger ki apni categorization hoti hai (hashtag jaisi nahi) — yahan alag rakha hai.</p>
           </div>
         )}
 
         <div>
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">Send to</label>
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">Send to {platforms.includes('tiktok') && <span className="text-[#FF0050] normal-case">- TikTok selected: video required!</span>}</label>
           <div className="flex flex-wrap gap-2 mt-2">
             {PLATFORM_OPTIONS.map((p) => (
               <button
@@ -342,11 +335,13 @@ export default function Publish() {
                 onClick={() => togglePlatform(p.id)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                   platforms.includes(p.id)
-                    ? 'bg-signal/15 border-signal text-signal'
+                    ? p.id === 'tiktok' 
+                      ? 'bg-[#FF0050]/20 border-[#FF0050] text-[#FF0050]'
+                      : 'bg-signal/15 border-signal text-signal'
                     : 'border-line text-muted hover:text-offwhite'
                 }`}
               >
-                {p.label}
+                {p.label} {p.id === 'tiktok' ? '🎵' : ''}
               </button>
             ))}
           </div>
@@ -391,11 +386,6 @@ export default function Publish() {
               </>
             )}
           </div>
-          {mode === 'schedule' && (
-            <p className="text-[11px] text-muted mt-2">
-              Waqt <span className="text-offwhite font-mono">{timezone}</span> timezone ke hisaab se liya jayega — jo bhi region ho apni timezone select kar sakte ho.
-            </p>
-          )}
         </div>
 
         <button
@@ -406,7 +396,7 @@ export default function Publish() {
           {loading
             ? mode === 'now' ? 'Transmitting…' : 'Scheduling…'
             : mode === 'now'
-              ? `Publish to ${platforms.length} channel${platforms.length === 1 ? '' : 's'}`
+              ? `Publish to ${platforms.length} channel${platforms.length === 1 ? '' : 's'} ${platforms.includes('tiktok') ? 'including TikTok' : ''}`
               : `Schedule for ${platforms.length} channel${platforms.length === 1 ? '' : 's'}`}
         </button>
         {error && <div className="text-coral text-sm font-mono">{error}</div>}
@@ -415,7 +405,6 @@ export default function Publish() {
       {scheduled && (
         <div className="mt-6 rounded-lg border border-signal/40 bg-signal/10 px-4 py-3 text-sm text-signal">
           Scheduled ✓ — {new Date(scheduled.scheduled_at).toLocaleString()} ko {scheduled.platforms.join(', ')} par chala jayega.
-          Dekho <a href="/calendar" className="underline">Calendar</a> page par.
         </div>
       )}
 
@@ -427,9 +416,10 @@ export default function Publish() {
               className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 ${STATUS_STYLES[res.status] || STATUS_STYLES.error}`}
             >
               <div>
-                <div className="font-mono text-xs uppercase">{platform}</div>
+                <div className="font-mono text-xs uppercase">{platform} {res.inbox ? '(Inbox)' : ''}</div>
                 <div className="text-xs opacity-80 mt-1">
                   {res.message || (res.detail && JSON.stringify(res.detail).slice(0, 140)) || 'Published successfully'}
+                  {res.inbox && ' - Open TikTok app to finalize!'}
                 </div>
               </div>
               <span className="font-mono text-[10px] uppercase shrink-0">{res.status}</span>
