@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 
-// UPGRADED SECURE VERSION WITH MEDIUM - Only Connect Buttons, No Keys Shown!
-// Facebook, Threads, LinkedIn, Blogger, Medium - sab ek click me!
+// FINAL VERSION - NO MEDIUM - Only 4 Platforms
+// Facebook, Threads, LinkedIn, Blogger - Medium removed (API deprecated by Medium)
 
 export default function Settings() {
   const [connected, setConnected] = useState({})
   const [threadsCheck, setThreadsCheck] = useState({ connected: false })
   const [linkedinCheck, setLinkedinCheck] = useState({ connected: false })
   const [bloggerCheck, setBloggerCheck] = useState({ connected: false, has_token: false, has_blog: false })
-  const [mediumCheck, setMediumCheck] = useState({ connected: false, has_token: false })
   const [bloggerBlogs, setBloggerBlogs] = useState([])
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -27,11 +26,10 @@ export default function Settings() {
       const wsId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       const headers = { 'X-Workspace-Id': wsId }
       
-      const [threadsRes, linkedinRes, bloggerRes, mediumRes] = await Promise.all([
+      const [threadsRes, linkedinRes, bloggerRes] = await Promise.all([
         fetch(`${base}/api/auth/threads/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/linkedin/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/medium/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
+        fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
       ])
       
       if (threadsRes) setThreadsCheck(threadsRes)
@@ -42,7 +40,6 @@ export default function Settings() {
           loadBloggerBlogs(base, headers)
         }
       }
-      if (mediumRes) setMediumCheck(mediumRes)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -75,7 +72,7 @@ export default function Settings() {
     const messageParam = params.get('message')
     
     if (connectedParam) {
-      if (['facebook', 'threads', 'linkedin', 'blogger', 'medium'].includes(connectedParam)) {
+      if (['facebook', 'threads', 'linkedin', 'blogger'].includes(connectedParam)) {
         setSuccessMsg(`${connectedParam.charAt(0).toUpperCase() + connectedParam.slice(1)} Successfully Connected! ✓`)
         setTimeout(() => load(), 1200)
       }
@@ -110,8 +107,6 @@ export default function Settings() {
         endpoint = `${base}/api/auth/linkedin`
       } else if (platform === 'blogger') {
         endpoint = `${base}/api/auth/blogger`
-      } else if (platform === 'medium') {
-        endpoint = `${base}/api/auth/medium`
       }
       
       if (endpoint) {
@@ -122,7 +117,7 @@ export default function Settings() {
         if (data.login_url) {
           window.location.href = data.login_url
         } else {
-          throw new Error(`${platform} Login URL missing. Admin setup incomplete: ${JSON.stringify(data).slice(0,100)}`)
+          throw new Error(`${platform} Login URL missing. Admin setup incomplete`)
         }
       }
     } catch (e) {
@@ -164,7 +159,6 @@ export default function Settings() {
   const isThreadsConnected = threadsCheck.connected || threadsCheck.has_token || !!threadsCheck.threads_user_id_value || !!threadsCheck.threads_user_id
   const isLinkedinConnected = linkedinCheck.connected || linkedinCheck.has_token || linkedinCheck.profile_connected
   const isBloggerConnected = bloggerCheck.connected || (bloggerCheck.has_token && bloggerCheck.has_blog)
-  const isMediumConnected = mediumCheck.connected || mediumCheck.has_token || !!mediumCheck.user_id
 
   if (loading) {
     return (
@@ -181,7 +175,7 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8 pb-28">
       <div className="mb-8">
         <h1 className="font-display font-bold text-2xl text-offwhite mb-2 tracking-tight">Connect Accounts</h1>
-        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger, Medium sab auto! Koi key ya token ki zaroorat nahi.</p>
+        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger auto! Koi key ki zaroorat nahi.</p>
       </div>
       
       {error && (
@@ -212,7 +206,7 @@ export default function Settings() {
                   Facebook & Instagram
                   {isFbConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.5)]" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5 leading-[1.5]">Page + Instagram Business ek saath connect honge. Auto posting enable hogi.</p>
+                <p className="text-[12.5px] text-muted mt-1.5 leading-[1.5]">Page + Instagram Business ek saath connect honge.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition ${
                     isFbConnected 
@@ -231,8 +225,8 @@ export default function Settings() {
               className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-4 sm:px-5 py-2.5 transition-all duration-200 active:scale-[0.98] ${
                 isFbConnected
                   ? 'bg-ink border border-line text-muted hover:border-[#1877F2]/30 hover:text-offwhite hover:bg-surface'
-                  : 'bg-[#1877F2] text-white hover:brightness-110 shadow-[0_4px_14px_rgba(24,119,242,0.35)] hover:shadow-[0_6px_20px_rgba(24,119,242,0.4)]'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  : 'bg-[#1877F2] text-white hover:brightness-110 shadow-[0_4px_14px_rgba(24,119,242,0.35)]'
+              } disabled:opacity-50`}
             >
               {connecting === 'facebook' ? '...' : isFbConnected ? 'Reconnect' : 'Connect'}
             </button>
@@ -243,22 +237,19 @@ export default function Settings() {
         <div className="group relative bg-surface border border-line hover:border-white/20 rounded-[16px] p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(255,255,255,0.06)] hover:-translate-y-[1px]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="w-11 h-11 bg-black border border-white/[0.08] rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+              <div className="w-11 h-11 bg-black border border-white/[0.08] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-[15px]">@</span>
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
                   Threads
-                  {isThreadsConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.5)]" />}
+                  {isThreadsConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5 leading-[1.5]">Threads.net account. Facebook se alag connect hota hai.</p>
-                <div className="mt-3 flex items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition ${
-                    isThreadsConnected 
-                      ? 'bg-signal/10 text-signal border-signal/20' 
-                      : 'bg-ink text-muted/80 border-line'
+                <p className="text-[12.5px] text-muted mt-1.5">Threads.net account.</p>
+                <div className="mt-3">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                    isThreadsConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
                   }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isThreadsConnected ? 'bg-signal' : 'bg-muted'}`} />
                     {isThreadsConnected ? 'Connected' : 'Not Connected'}
                   </span>
                 </div>
@@ -267,199 +258,95 @@ export default function Settings() {
             <button
               onClick={() => handleConnect('threads')}
               disabled={!!connecting}
-              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-4 sm:px-5 py-2.5 transition-all duration-200 active:scale-[0.98] ${
-                isThreadsConnected
-                  ? 'bg-ink border border-line text-muted hover:border-white/20 hover:text-offwhite'
-                  : 'bg-white text-black hover:bg-zinc-100 shadow-[0_4px_14px_rgba(255,255,255,0.2)]'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${
+                isThreadsConnected ? 'bg-ink border border-line text-muted' : 'bg-white text-black'
+              }`}
             >
-              {connecting === 'threads' ? '...' : isThreadsConnected ? 'Reconnect' : 'Connect'}
+              {isThreadsConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
         </div>
 
         {/* LinkedIn */}
-        <div className="group relative bg-surface border border-line hover:border-[#0A66C2]/40 rounded-[16px] p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(10,102,194,0.12)] hover:-translate-y-[1px]">
+        <div className="group relative bg-surface border border-line hover:border-[#0A66C2]/40 rounded-[16px] p-5 sm:p-6 transition-all">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="w-11 h-11 bg-[#0A66C2] rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(10,102,194,0.3)]">
-                <span className="text-white font-black text-[13px] tracking-tighter">in</span>
+              <div className="w-11 h-11 bg-[#0A66C2] rounded-[12px] flex items-center justify-center shrink-0">
+                <span className="text-white font-black text-[13px]">in</span>
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
                   LinkedIn
-                  {isLinkedinConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.5)]" />}
+                  {isLinkedinConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5 leading-[1.5]">Profile auto-connect. Company page approval pending (CAS-11821533).</p>
-                <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition ${
-                    isLinkedinConnected 
-                      ? 'bg-signal/10 text-signal border-signal/20' 
-                      : 'bg-ink text-muted/80 border-line'
+                <p className="text-[12.5px] text-muted mt-1.5">Profile auto-connect.</p>
+                <div className="mt-3">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                    isLinkedinConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
                   }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isLinkedinConnected ? 'bg-signal' : 'bg-muted'}`} />
                     {isLinkedinConnected ? 'Connected' : 'Not Connected'}
                   </span>
-                  {isLinkedinConnected && linkedinCheck.profile_name && (
-                    <span className="text-[11px] text-muted/80 truncate max-w-[140px]">{linkedinCheck.profile_name}</span>
-                  )}
                 </div>
               </div>
             </div>
             <button
               onClick={() => handleConnect('linkedin')}
               disabled={!!connecting}
-              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-4 sm:px-5 py-2.5 transition-all duration-200 active:scale-[0.98] ${
-                isLinkedinConnected
-                  ? 'bg-ink border border-line text-muted hover:border-[#0A66C2]/30 hover:text-offwhite'
-                  : 'bg-[#0A66C2] text-white hover:brightness-110 shadow-[0_4px_14px_rgba(10,102,194,0.35)]'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${
+                isLinkedinConnected ? 'bg-ink border border-line text-muted' : 'bg-[#0A66C2] text-white'
+              }`}
             >
-              {connecting === 'linkedin' ? '...' : isLinkedinConnected ? 'Reconnect' : 'Connect'}
+              {isLinkedinConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
         </div>
 
         {/* Blogger */}
-        <div className="group relative bg-surface border border-line hover:border-[#FF5722]/40 rounded-[16px] p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(255,87,34,0.12)] hover:-translate-y-[1px] overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#FF5722]/10 to-transparent rounded-bl-[24px] pointer-events-none" />
+        <div className="group relative bg-surface border border-line hover:border-[#FF5722]/40 rounded-[16px] p-5 sm:p-6 transition-all overflow-hidden">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="w-11 h-11 bg-[#FF5722] rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(255,87,34,0.3)]">
+              <div className="w-11 h-11 bg-[#FF5722] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[16px]">B</span>
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
                   Blogger
-                  {isBloggerConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.5)]" />}
+                  {isBloggerConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5 leading-[1.5]">Google Blogger blog. Ek click me connect, auto posting.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">Google Blogger blog auto posting.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition ${
-                    isBloggerConnected 
-                      ? 'bg-signal/10 text-signal border-signal/20' 
-                      : 'bg-ink text-muted/80 border-line'
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                    isBloggerConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
                   }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isBloggerConnected ? 'bg-signal' : 'bg-muted'}`} />
-                    {isBloggerConnected ? 'Connected' : bloggerCheck.has_token ? 'Token OK • Select Blog' : 'Not Connected'}
+                    {isBloggerConnected ? 'Connected' : 'Not Connected'}
                   </span>
                   {isBloggerConnected && bloggerCheck.blog_name && (
-                    <span className="text-[11px] text-muted/70 truncate max-w-[130px]">{bloggerCheck.blog_name}</span>
+                    <span className="text-[11px] text-muted/70">{bloggerCheck.blog_name}</span>
                   )}
                 </div>
-
-                {isBloggerConnected && bloggerCheck.blog_name && (
-                  <div className="mt-3 p-3 bg-ink/60 backdrop-blur border border-line rounded-[12px]">
-                    <div className="text-[11px] font-semibold text-offwhite/90 uppercase tracking-wider mb-1">Active Blog</div>
-                    <div className="text-[13px] font-medium text-offwhite truncate">{bloggerCheck.blog_name}</div>
-                    {bloggerCheck.blog_url && (
-                      <a href={bloggerCheck.blog_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#FF5722] hover:underline mt-1 inline-flex items-center gap-1">
-                        {bloggerCheck.blog_url} ↗
-                      </a>
-                    )}
-                    {bloggerBlogs.length > 1 && (
-                      <div className="mt-2 space-y-1">
-                        {bloggerBlogs.map(blog => (
-                          <button
-                            key={blog.id}
-                            onClick={() => handleSelectBlog(blog)}
-                            className={`w-full text-left text-[11px] p-2 rounded-[8px] border ${blog.id === bloggerCheck.blog_id ? 'bg-signal/10 border-signal/30 text-offwhite' : 'bg-surface border-line text-muted hover:border-[#FF5722]/30'}`}
-                          >
-                            {blog.name} {blog.id === bloggerCheck.blog_id && '✓'}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
             <button
               onClick={() => handleConnect('blogger')}
               disabled={!!connecting}
-              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-4 sm:px-5 py-2.5 transition-all duration-200 active:scale-[0.98] ${
-                isBloggerConnected
-                  ? 'bg-ink border border-line text-muted hover:border-[#FF5722]/30 hover:text-offwhite'
-                  : 'bg-[#FF5722] text-white hover:brightness-110 shadow-[0_4px_14px_rgba(255,87,34,0.35)]'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${
+                isBloggerConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF5722] text-white'
+              }`}
             >
-              {connecting === 'blogger' ? '...' : isBloggerConnected ? 'Reconnect' : 'Connect'}
-            </button>
-          </div>
-        </div>
-
-        {/* Medium - NEW! */}
-        <div className="group relative bg-surface border border-line hover:border-black/60 rounded-[16px] p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:-translate-y-[1px] overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-black/[0.06] to-transparent rounded-bl-[24px] pointer-events-none" />
-          <div className="absolute top-3.5 right-3.5">
-            <span className="text-[10px] font-bold tracking-wider bg-black text-white px-2 py-1 rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.3)]">NEW</span>
-          </div>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="w-11 h-11 bg-black rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-white/10">
-                <span className="text-white font-black text-[18px]">M</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5 pr-12">
-                  Medium
-                  {isMediumConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse shadow-[0_0_8px_rgba(0,255,136,0.5)]" />}
-                </h2>
-                <p className="text-[12.5px] text-muted mt-1.5 leading-[1.5]">Medium.com stories. Ek click me connect, auto article publishing.</p>
-                <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border transition ${
-                    isMediumConnected 
-                      ? 'bg-signal/10 text-signal border-signal/20' 
-                      : 'bg-ink text-muted/80 border-line'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${isMediumConnected ? 'bg-signal' : 'bg-muted'}`} />
-                    {isMediumConnected ? 'Connected' : 'Not Connected'}
-                  </span>
-                  {isMediumConnected && mediumCheck.username && (
-                    <span className="text-[11px] text-muted/70">@{mediumCheck.username}</span>
-                  )}
-                  {isMediumConnected && mediumCheck.profile_name && (
-                    <span className="text-[11px] text-muted/60 truncate max-w-[100px]">{mediumCheck.profile_name}</span>
-                  )}
-                </div>
-                {isMediumConnected && mediumCheck.user_url && (
-                  <div className="mt-2">
-                    <a href={mediumCheck.user_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-muted hover:text-offwhite underline">
-                      {mediumCheck.user_url} ↗
-                    </a>
-                  </div>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => handleConnect('medium')}
-              disabled={!!connecting}
-              className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-4 sm:px-5 py-2.5 transition-all duration-200 active:scale-[0.98] ${
-                isMediumConnected
-                  ? 'bg-ink border border-line text-muted hover:border-black/30 hover:text-offwhite'
-                  : 'bg-black text-white hover:bg-zinc-900 border border-white/10 shadow-[0_4px_14px_rgba(0,0,0,0.25)]'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {connecting === 'medium' ? '...' : isMediumConnected ? 'Reconnect' : 'Connect'}
+              {isBloggerConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Security Note */}
-      <div className="mt-8 p-4 bg-ink/40 border border-line/60 rounded-[12px] backdrop-blur">
+      <div className="mt-8 p-4 bg-ink/40 border border-line/60 rounded-[12px]">
         <div className="flex gap-3">
-          <span className="text-[14px] mt-0.5">🔒</span>
+          <span>🔒</span>
           <div>
-            <div className="text-[12px] font-semibold text-offwhite tracking-tight">100% Secure & Private</div>
-            <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.6]">
-              Tumhari koi bhi API key, secret, token yahan show nahi hota. Sab encrypted DB me safe hai. Sirf <b className="text-offwhite/70">Connected / Not Connected</b> dikhta hai. Medium, Blogger, LinkedIn sab one-click OAuth!
-            </div>
+            <div className="text-[12px] font-semibold text-offwhite">4 Platforms Active</div>
+            <div className="text-[11.5px] text-muted/80 mt-1">Medium removed - API deprecated by Medium (403 error). Only Facebook, Threads, LinkedIn, Blogger active.</div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-6 text-center">
-        <div className="text-[11px] text-muted/50">NextGen Analytics • 5 platforms • No keys exposed</div>
       </div>
     </div>
   )
