@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 
-// FINAL VERSION - NO MEDIUM - Only 4 Platforms
-// Facebook, Threads, LinkedIn, Blogger - Medium removed (API deprecated by Medium)
+// FINAL VERSION - WITH TIKTOK - 5 Platforms
+// Facebook, Threads, LinkedIn, Blogger, TikTok
 
 export default function Settings() {
   const [connected, setConnected] = useState({})
   const [threadsCheck, setThreadsCheck] = useState({ connected: false })
   const [linkedinCheck, setLinkedinCheck] = useState({ connected: false })
   const [bloggerCheck, setBloggerCheck] = useState({ connected: false, has_token: false, has_blog: false })
+  const [tiktokCheck, setTiktokCheck] = useState({ connected: false, has_token: false })
   const [bloggerBlogs, setBloggerBlogs] = useState([])
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -26,10 +27,11 @@ export default function Settings() {
       const wsId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       const headers = { 'X-Workspace-Id': wsId }
       
-      const [threadsRes, linkedinRes, bloggerRes] = await Promise.all([
+      const [threadsRes, linkedinRes, bloggerRes, tiktokRes] = await Promise.all([
         fetch(`${base}/api/auth/threads/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/linkedin/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
+        fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
+        fetch(`${base}/api/auth/tiktok/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
       ])
       
       if (threadsRes) setThreadsCheck(threadsRes)
@@ -40,6 +42,7 @@ export default function Settings() {
           loadBloggerBlogs(base, headers)
         }
       }
+      if (tiktokRes) setTiktokCheck(tiktokRes)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -72,7 +75,7 @@ export default function Settings() {
     const messageParam = params.get('message')
     
     if (connectedParam) {
-      if (['facebook', 'threads', 'linkedin', 'blogger'].includes(connectedParam)) {
+      if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok'].includes(connectedParam)) {
         setSuccessMsg(`${connectedParam.charAt(0).toUpperCase() + connectedParam.slice(1)} Successfully Connected! ✓`)
         setTimeout(() => load(), 1200)
       }
@@ -107,6 +110,8 @@ export default function Settings() {
         endpoint = `${base}/api/auth/linkedin`
       } else if (platform === 'blogger') {
         endpoint = `${base}/api/auth/blogger`
+      } else if (platform === 'tiktok') {
+        endpoint = `${base}/api/auth/tiktok`
       }
       
       if (endpoint) {
@@ -117,7 +122,7 @@ export default function Settings() {
         if (data.login_url) {
           window.location.href = data.login_url
         } else {
-          throw new Error(`${platform} Login URL missing. Admin setup incomplete`)
+          throw new Error(`${platform} Login URL missing. ${data.error || ''} Admin setup: ${data.instructions || ''}`)
         }
       }
     } catch (e) {
@@ -159,6 +164,7 @@ export default function Settings() {
   const isThreadsConnected = threadsCheck.connected || threadsCheck.has_token || !!threadsCheck.threads_user_id_value || !!threadsCheck.threads_user_id
   const isLinkedinConnected = linkedinCheck.connected || linkedinCheck.has_token || linkedinCheck.profile_connected
   const isBloggerConnected = bloggerCheck.connected || (bloggerCheck.has_token && bloggerCheck.has_blog)
+  const isTiktokConnected = tiktokCheck.connected || tiktokCheck.has_token || !!tiktokCheck.open_id
 
   if (loading) {
     return (
@@ -175,7 +181,7 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8 pb-28">
       <div className="mb-8">
         <h1 className="font-display font-bold text-2xl text-offwhite mb-2 tracking-tight">Connect Accounts</h1>
-        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger auto! Koi key ki zaroorat nahi.</p>
+        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger, TikTok auto! Koi key ki zaroorat nahi.</p>
       </div>
       
       {error && (
@@ -337,14 +343,56 @@ export default function Settings() {
             </button>
           </div>
         </div>
+
+        {/* TikTok - NEW */}
+        <div className="group relative bg-surface border border-line hover:border-[#000000]/40 rounded-[16px] p-5 sm:p-6 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FF0050]/5 via-transparent to-[#00F2EA]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-11 h-11 bg-black rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.3)] relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FF0050] to-[#00F2EA] opacity-20" />
+                <span className="text-white font-black text-[16px] relative">♪</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
+                  TikTok
+                  {isTiktokConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
+                  <span className="text-[10px] bg-[#FF0050]/20 text-[#FF0050] border border-[#FF0050]/30 px-2 py-0.5 rounded-full font-bold">NEW</span>
+                </h2>
+                <p className="text-[12.5px] text-muted mt-1.5">Video auto posting - MP4/MOV required.</p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                    isTiktokConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
+                  }`}>
+                    {isTiktokConnected ? 'Connected' : 'Not Connected'}
+                  </span>
+                  {isTiktokConnected && tiktokCheck.display_name && (
+                    <span className="text-[11px] text-muted/70">@{tiktokCheck.display_name}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => handleConnect('tiktok')}
+              disabled={!!connecting}
+              className={`relative shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${
+                isTiktokConnected 
+                  ? 'bg-ink border border-line text-muted hover:text-offwhite' 
+                  : 'bg-black text-white hover:bg-black/80 border border-white/10 shadow-[0_4px_14px_rgba(0,0,0,0.3)]'
+              }`}
+            >
+              {connecting === 'tiktok' ? '...' : isTiktokConnected ? 'Reconnect' : 'Connect'}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 p-4 bg-ink/40 border border-line/60 rounded-[12px]">
         <div className="flex gap-3">
           <span>🔒</span>
           <div>
-            <div className="text-[12px] font-semibold text-offwhite">4 Platforms Active</div>
-            <div className="text-[11.5px] text-muted/80 mt-1">Medium removed - API deprecated by Medium (403 error). Only Facebook, Threads, LinkedIn, Blogger active.</div>
+            <div className="text-[12px] font-semibold text-offwhite">5 Platforms Active + TikTok</div>
+            <div className="text-[11.5px] text-muted/80 mt-1">Facebook, Threads, LinkedIn, Blogger, TikTok. TikTok ke liye video (MP4) zaroori hai. Admin: TikTok Dev Portal me app banao, Client Key/Secret set karo.</div>
           </div>
         </div>
       </div>
