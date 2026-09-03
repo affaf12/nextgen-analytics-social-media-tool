@@ -10,13 +10,12 @@ const PLATFORM_OPTIONS = [
   { id: 'linkedin_profile', label: 'LinkedIn Profile' },
   { id: 'linkedin_page', label: 'LinkedIn Page' },
   { id: 'blogger', label: 'Blogger' },
-  { id: 'medium', label: 'Medium' },
   { id: 'substack', label: 'Substack' },
 ]
 
 const SHORT_TEXT_PLATFORMS = ['threads', 'twitter']
 
-const BLOG_PLATFORMS = ['blogger', 'medium', 'substack']
+const BLOG_PLATFORMS = ['blogger', 'substack']
 
 const HASHTAG_PLATFORMS = ['fb_page', 'ig', 'threads', 'twitter', 'linkedin_profile', 'linkedin_page']
 
@@ -199,7 +198,7 @@ export default function Publish() {
         {needsTitle && (
           <div>
             <label className="text-xs font-medium text-muted uppercase tracking-wide">
-              Title <span className="text-muted/60 normal-case">(Blogger / Medium ke liye zaroori)</span>
+              Title <span className="text-muted/60 normal-case">(Blogger ke liye zaroori)</span>
             </label>
             <input
               value={title}
@@ -219,7 +218,7 @@ export default function Publish() {
             placeholder="Apna final caption yahan paste karo…"
             className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none resize-none"
           />
-          <p className="text-[11px] text-muted mt-1">Ye caption Facebook, Instagram, LinkedIn, Blogger aur Medium sab par jayega.</p>
+          <p className="text-[11px] text-muted mt-1">Ye caption Facebook, Instagram, LinkedIn aur Blogger sab par jayega.</p>
         </div>
 
         {needsShortCaption && (
