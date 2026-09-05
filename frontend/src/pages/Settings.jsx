@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 
-// UPGRADED VERSION - WITH SUBSTACK - 6 Platforms
-// Facebook, Threads, LinkedIn, Blogger, TikTok, Substack
+// UPGRADED VERSION - WITH YOUTUBE - 7 Platforms
+// Facebook, Threads, LinkedIn, Blogger, TikTok, Substack, YouTube
 
 export default function Settings() {
   const [connected, setConnected] = useState({})
@@ -11,6 +11,7 @@ export default function Settings() {
   const [bloggerCheck, setBloggerCheck] = useState({ connected: false, has_token: false, has_blog: false })
   const [tiktokCheck, setTiktokCheck] = useState({ connected: false, has_token: false })
   const [substackCheck, setSubstackCheck] = useState({ connected: false, has_sid: false, publication_url: '' })
+  const [youtubeCheck, setYoutubeCheck] = useState({ connected: false, has_token: false, channel_title: '' })
   const [bloggerBlogs, setBloggerBlogs] = useState([])
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
@@ -34,12 +35,13 @@ export default function Settings() {
       const wsId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       const headers = { 'X-Workspace-Id': wsId }
       
-      const [threadsRes, linkedinRes, bloggerRes, tiktokRes, substackRes] = await Promise.all([
+      const [threadsRes, linkedinRes, bloggerRes, tiktokRes, substackRes, youtubeRes] = await Promise.all([
         fetch(`${base}/api/auth/threads/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/linkedin/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/tiktok/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/substack/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
+        fetch(`${base}/api/auth/substack/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
+        fetch(`${base}/api/auth/youtube/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
       ])
       
       if (threadsRes) setThreadsCheck(threadsRes)
@@ -57,6 +59,7 @@ export default function Settings() {
           setSubPubUrl(substackRes.publication_url)
         }
       }
+      if (youtubeRes) setYoutubeCheck(youtubeRes)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -89,7 +92,7 @@ export default function Settings() {
     const messageParam = params.get('message')
     
     if (connectedParam) {
-      if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok', 'substack'].includes(connectedParam)) {
+      if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok', 'substack', 'youtube'].includes(connectedParam)) {
         setSuccessMsg(`${connectedParam.charAt(0).toUpperCase() + connectedParam.slice(1)} Successfully Connected! ✓`)
         setTimeout(() => load(), 1200)
       }
@@ -111,7 +114,6 @@ export default function Settings() {
       const workspaceId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       
       if (platform === 'substack') {
-        // Substack uses modal, not redirect
         setShowSubstackModal(true)
         setConnecting('')
         return
@@ -133,6 +135,8 @@ export default function Settings() {
         endpoint = `${base}/api/auth/blogger`
       } else if (platform === 'tiktok') {
         endpoint = `${base}/api/auth/tiktok`
+      } else if (platform === 'youtube') {
+        endpoint = `${base}/api/auth/youtube`
       }
       
       if (endpoint) {
@@ -240,6 +244,7 @@ export default function Settings() {
   const isBloggerConnected = bloggerCheck.connected || (bloggerCheck.has_token && bloggerCheck.has_blog)
   const isTiktokConnected = tiktokCheck.connected || tiktokCheck.has_token || !!tiktokCheck.open_id
   const isSubstackConnected = substackCheck.connected || substackCheck.has_sid || !!substackCheck.publication_url
+  const isYoutubeConnected = youtubeCheck.connected || youtubeCheck.has_token || !!youtubeCheck.channel_id
 
   if (loading) {
     return (
@@ -256,7 +261,7 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8 pb-28">
       <div className="mb-8">
         <h1 className="font-display font-bold text-2xl text-offwhite mb-2 tracking-tight">Connect Accounts</h1>
-        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger, TikTok, Substack auto! Koi key ki zaroorat nahi.</p>
+        <p className="text-sm text-muted leading-relaxed">7 Platforms — Facebook, Threads, LinkedIn, Blogger, TikTok, Substack, YouTube! Ek click me connect.</p>
       </div>
       
       {error && (
@@ -461,7 +466,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Substack - NEW - 6th Platform - NO KHARWARI */}
+        {/* Substack */}
         <div className="group relative bg-surface border border-line hover:border-[#FF6719]/40 rounded-[16px] p-5 sm:p-6 transition-all overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#FF6719]/5 via-transparent to-[#FF6719]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative flex items-start justify-between gap-4">
@@ -476,7 +481,7 @@ export default function Settings() {
                   <span className="text-[10px] bg-[#FF6719]/20 text-[#FF6719] border border-[#FF6719]/30 px-2 py-0.5 rounded-full font-bold">NEW</span>
                   <span className="text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">NO API KEY</span>
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">Newsletter publishing - cookie auth, no OAuth.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">Newsletter publishing - cookie auth.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
                     isSubstackConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
@@ -512,9 +517,54 @@ export default function Settings() {
             </div>
           </div>
         </div>
+
+        {/* YouTube - 7th Platform - NEW */}
+        <div className="group relative bg-surface border border-line hover:border-[#FF0000]/40 rounded-[16px] p-5 sm:p-6 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FF0000]/5 via-transparent to-[#FF0000]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-11 h-11 bg-[#FF0000] rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(255,0,0,0.3)]">
+                <span className="text-white font-black text-[16px]">▶</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
+                  YouTube
+                  {isYoutubeConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
+                  <span className="text-[10px] bg-[#FF0000]/20 text-[#FF0000] border border-[#FF0000]/30 px-2 py-0.5 rounded-full font-bold">NEW</span>
+                  <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded-full">7th Platform</span>
+                </h2>
+                <p className="text-[12.5px] text-muted mt-1.5">Video upload — direct to channel, public/unlisted/private.</p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                    isYoutubeConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
+                  }`}>
+                    {isYoutubeConnected ? 'Connected' : 'Not Connected'}
+                  </span>
+                  {isYoutubeConnected && youtubeCheck.channel_title && (
+                    <span className="text-[11px] text-muted/70 truncate max-w-[160px]">{youtubeCheck.channel_title}</span>
+                  )}
+                  {isYoutubeConnected && youtubeCheck.channel_id && !youtubeCheck.channel_title && (
+                    <span className="text-[11px] text-muted/70">{youtubeCheck.channel_id.slice(0,20)}...</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => handleConnect('youtube')}
+              disabled={!!connecting}
+              className={`relative shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${
+                isYoutubeConnected 
+                  ? 'bg-ink border border-line text-muted hover:text-offwhite' 
+                  : 'bg-[#FF0000] text-white hover:bg-[#FF0000]/90 shadow-[0_4px_14px_rgba(255,0,0,0.35)]'
+              }`}
+            >
+              {connecting === 'youtube' ? '...' : isYoutubeConnected ? 'Reconnect' : 'Connect'}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Substack Modal - No Kharwari */}
+      {/* Substack Modal */}
       {showSubstackModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-surface border border-line rounded-[20px] p-6 w-full max-w-[440px] shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
@@ -524,7 +574,7 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="font-bold text-[16px] text-offwhite">Connect Substack</h2>
-                <p className="text-[11px] text-muted">2 min - No API key, no OAuth</p>
+                <p className="text-[11px] text-muted">2 min - No API key</p>
               </div>
               <button onClick={()=>setShowSubstackModal(false)} className="ml-auto w-8 h-8 rounded-full bg-ink flex items-center justify-center text-muted hover:text-offwhite">✕</button>
             </div>
@@ -532,19 +582,15 @@ export default function Settings() {
             <div className="bg-[#FF6719]/10 border border-[#FF6719]/20 p-3 rounded-[12px] mb-4">
               <div className="text-[11px] font-bold text-[#FF6719] mb-1">📋 Kaise SID Lena Hai:</div>
               <div className="text-[11px] text-muted leading-[1.6]">
-                1. <a href="https://substack.com" target="_blank" className="text-[#FF6719] underline">substack.com</a> pe login karo<br/>
-                2. Keyboard pe <span className="bg-ink px-1.5 py-0.5 rounded text-[10px] font-mono">F12</span> dabao (DevTools)<br/>
-                3. <b>Application</b> tab → <b>Cookies</b> → <b>https://substack.com</b><br/>
-                4. <b>substack.sid</b> ka <b>Value</b> copy karo (lamba string)
+                1. substack.com pe login karo<br/>
+                2. <span className="bg-ink px-1.5 py-0.5 rounded text-[10px] font-mono">F12</span> → Application → Cookies → substack.com<br/>
+                3. substack.sid ka Value copy karo
               </div>
             </div>
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-[11px] font-bold text-offwhite flex items-center gap-1.5">
-                  Publication URL <span className="text-red-400">*</span>
-                  <span className="text-[10px] text-muted font-normal">jaise https://yoursite.substack.com</span>
-                </label>
+                <label className="text-[11px] font-bold text-offwhite">Publication URL *</label>
                 <input 
                   value={subPubUrl}
                   onChange={e=>setSubPubUrl(e.target.value)}
@@ -553,21 +599,16 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-offwhite flex items-center gap-1.5">
-                  substack.sid Cookie <span className="text-red-400">*</span>
-                  <span className="text-[10px] text-muted font-normal">100+ chars ka lamba string</span>
-                </label>
+                <label className="text-[11px] font-bold text-offwhite">substack.sid Cookie *</label>
                 <textarea 
                   value={subSid}
                   onChange={e=>setSubSid(e.target.value)}
-                  placeholder="Paste sid here... starts with long random string"
+                  placeholder="Paste sid here..."
                   className="w-full mt-1.5 p-3 rounded-[10px] bg-ink border border-line text-[12px] font-mono text-offwhite placeholder:text-muted/50 focus:border-[#FF6719]/50 focus:outline-none h-[80px] resize-none"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-offwhite">
-                  Email <span className="text-[10px] text-muted font-normal">(optional)</span>
-                </label>
+                <label className="text-[11px] font-bold text-offwhite">Email (optional)</label>
                 <input 
                   value={subEmail}
                   onChange={e=>setSubEmail(e.target.value)}
@@ -579,14 +620,10 @@ export default function Settings() {
 
             <div className="flex gap-2.5 mt-6">
               <button onClick={()=>setShowSubstackModal(false)} className="flex-1 py-3 rounded-[12px] bg-ink border border-line text-[13px] font-semibold text-muted hover:text-offwhite">Cancel</button>
-              <button onClick={handleSubstackConnect} disabled={connecting==='substack'} className="flex-1 py-3 rounded-[12px] bg-[#FF6719] text-white text-[13px] font-bold hover:bg-[#FF6719]/90 disabled:opacity-50 shadow-[0_4px_14px_rgba(255,103,25,0.3)]">
+              <button onClick={handleSubstackConnect} disabled={connecting==='substack'} className="flex-1 py-3 rounded-[12px] bg-[#FF6719] text-white text-[13px] font-bold hover:bg-[#FF6719]/90 disabled:opacity-50">
                 {connecting === 'substack' ? 'Connecting...' : 'Connect ✓'}
               </button>
             </div>
-
-            <p className="text-[10px] text-muted/60 mt-3 text-center leading-[1.4]">
-              🔒 No password needed • Only cookie • Encrypted storage • Expires in 6 months • Disconnect anytime
-            </p>
           </div>
         </div>
       )}
@@ -595,9 +632,9 @@ export default function Settings() {
         <div className="flex gap-3">
           <span>🔒</span>
           <div>
-            <div className="text-[12px] font-semibold text-offwhite">6 Platforms Active — Facebook, Threads, LinkedIn, Blogger, TikTok, Substack</div>
+            <div className="text-[12px] font-semibold text-offwhite">7 Platforms Active — FB, Threads, LinkedIn, Blogger, TikTok, Substack, YouTube</div>
             <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.5]">
-              TikTok ke liye video (MP4) zaroori hai. Substack ke liye sirf Publication URL + SID chahiye — no OAuth, no API key, no approval. Admin: TikTok Dev Portal me app banao, Client Key/Secret set karo. Substack ke liye F12 → Cookies se SID copy karo.
+              TikTok + YouTube ke liye video (MP4) zaroori hai. Substack ke liye SID + URL. YouTube ke liye Google OAuth — Blogger wala Client ID reuse ho sakta hai, bas YouTube Data API v3 enable karo. Quota: 6 videos/day free.
             </div>
           </div>
         </div>
