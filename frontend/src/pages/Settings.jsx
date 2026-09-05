@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 
-// FINAL VERSION - WITH TIKTOK - 5 Platforms
-// Facebook, Threads, LinkedIn, Blogger, TikTok
+// UPGRADED VERSION - WITH SUBSTACK - 6 Platforms
+// Facebook, Threads, LinkedIn, Blogger, TikTok, Substack
 
 export default function Settings() {
   const [connected, setConnected] = useState({})
@@ -10,12 +10,19 @@ export default function Settings() {
   const [linkedinCheck, setLinkedinCheck] = useState({ connected: false })
   const [bloggerCheck, setBloggerCheck] = useState({ connected: false, has_token: false, has_blog: false })
   const [tiktokCheck, setTiktokCheck] = useState({ connected: false, has_token: false })
+  const [substackCheck, setSubstackCheck] = useState({ connected: false, has_sid: false, publication_url: '' })
   const [bloggerBlogs, setBloggerBlogs] = useState([])
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [connecting, setConnecting] = useState('')
   const [loading, setLoading] = useState(true)
   const [loadingBlogs, setLoadingBlogs] = useState(false)
+  
+  // Substack Modal
+  const [showSubstackModal, setShowSubstackModal] = useState(false)
+  const [subPubUrl, setSubPubUrl] = useState('')
+  const [subSid, setSubSid] = useState('')
+  const [subEmail, setSubEmail] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -27,11 +34,12 @@ export default function Settings() {
       const wsId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       const headers = { 'X-Workspace-Id': wsId }
       
-      const [threadsRes, linkedinRes, bloggerRes, tiktokRes] = await Promise.all([
+      const [threadsRes, linkedinRes, bloggerRes, tiktokRes, substackRes] = await Promise.all([
         fetch(`${base}/api/auth/threads/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/linkedin/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
         fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/tiktok/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
+        fetch(`${base}/api/auth/tiktok/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
+        fetch(`${base}/api/auth/substack/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
       ])
       
       if (threadsRes) setThreadsCheck(threadsRes)
@@ -43,6 +51,12 @@ export default function Settings() {
         }
       }
       if (tiktokRes) setTiktokCheck(tiktokRes)
+      if (substackRes) {
+        setSubstackCheck(substackRes)
+        if (substackRes.publication_url) {
+          setSubPubUrl(substackRes.publication_url)
+        }
+      }
     } catch (e) {
       setError(e.message)
     } finally {
@@ -75,7 +89,7 @@ export default function Settings() {
     const messageParam = params.get('message')
     
     if (connectedParam) {
-      if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok'].includes(connectedParam)) {
+      if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok', 'substack'].includes(connectedParam)) {
         setSuccessMsg(`${connectedParam.charAt(0).toUpperCase() + connectedParam.slice(1)} Successfully Connected! ✓`)
         setTimeout(() => load(), 1200)
       }
@@ -96,6 +110,13 @@ export default function Settings() {
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
       const workspaceId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       
+      if (platform === 'substack') {
+        // Substack uses modal, not redirect
+        setShowSubstackModal(true)
+        setConnecting('')
+        return
+      }
+
       let endpoint = ''
       if (platform === 'facebook') {
         const res = await api.getFacebookLoginUrl()
@@ -132,6 +153,59 @@ export default function Settings() {
     }
   }
 
+  const handleSubstackConnect = async () => {
+    if (!subSid || !subPubUrl) {
+      setError('Substack SID aur Publication URL dono chahiye!')
+      return
+    }
+    setConnecting('substack')
+    try {
+      const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
+      const wsId = localStorage.getItem('affaf-crm:workspace-id') || 'default'
+      const res = await fetch(`${base}/api/auth/substack/setup`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Workspace-Id': wsId
+        },
+        body: JSON.stringify({
+          sid: subSid,
+          publication_url: subPubUrl,
+          email: subEmail,
+          publication_name: subPubUrl.replace('https://','').replace('.substack.com','').replace('.',' ')
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccessMsg(`Substack Connected! ${subPubUrl} ✓`)
+        setShowSubstackModal(false)
+        setSubSid('')
+        load()
+      } else {
+        setError(data.message || 'Substack connect failed')
+      }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setConnecting('')
+    }
+  }
+
+  const handleSubstackDisconnect = async () => {
+    try {
+      const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
+      const wsId = localStorage.getItem('affaf-crm:workspace-id') || 'default'
+      await fetch(`${base}/api/auth/substack/disconnect`, {
+        method: 'POST',
+        headers: { 'X-Workspace-Id': wsId }
+      })
+      setSuccessMsg('Substack Disconnected')
+      load()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   const handleSelectBlog = async (blog) => {
     try {
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
@@ -165,6 +239,7 @@ export default function Settings() {
   const isLinkedinConnected = linkedinCheck.connected || linkedinCheck.has_token || linkedinCheck.profile_connected
   const isBloggerConnected = bloggerCheck.connected || (bloggerCheck.has_token && bloggerCheck.has_blog)
   const isTiktokConnected = tiktokCheck.connected || tiktokCheck.has_token || !!tiktokCheck.open_id
+  const isSubstackConnected = substackCheck.connected || substackCheck.has_sid || !!substackCheck.publication_url
 
   if (loading) {
     return (
@@ -181,12 +256,12 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8 pb-28">
       <div className="mb-8">
         <h1 className="font-display font-bold text-2xl text-offwhite mb-2 tracking-tight">Connect Accounts</h1>
-        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger, TikTok auto! Koi key ki zaroorat nahi.</p>
+        <p className="text-sm text-muted leading-relaxed">Ek click me connect karo — Facebook, Threads, LinkedIn, Blogger, TikTok, Substack auto! Koi key ki zaroorat nahi.</p>
       </div>
       
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-200 text-[13px] p-4 rounded-xl mb-4 flex items-start gap-3 backdrop-blur">
-          <span className="text-red-400 mt-0.5">⚠️</span>
+          <span className="text-red-400 mt-0.5">⚠</span>
           <span className="leading-relaxed">{error}</span>
           <button onClick={() => setError('')} className="ml-auto text-red-400 hover:text-red-200">✕</button>
         </div>
@@ -344,7 +419,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* TikTok - NEW */}
+        {/* TikTok */}
         <div className="group relative bg-surface border border-line hover:border-[#000000]/40 rounded-[16px] p-5 sm:p-6 transition-all overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-[#FF0050]/5 via-transparent to-[#00F2EA]/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative flex items-start justify-between gap-4">
@@ -385,14 +460,145 @@ export default function Settings() {
             </button>
           </div>
         </div>
+
+        {/* Substack - NEW - 6th Platform - NO KHARWARI */}
+        <div className="group relative bg-surface border border-line hover:border-[#FF6719]/40 rounded-[16px] p-5 sm:p-6 transition-all overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FF6719]/5 via-transparent to-[#FF6719]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-11 h-11 bg-[#FF6719] rounded-[12px] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(255,103,25,0.3)]">
+                <span className="text-white font-black text-[16px]">S</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
+                  Substack
+                  {isSubstackConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
+                  <span className="text-[10px] bg-[#FF6719]/20 text-[#FF6719] border border-[#FF6719]/30 px-2 py-0.5 rounded-full font-bold">NEW</span>
+                  <span className="text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">NO API KEY</span>
+                </h2>
+                <p className="text-[12.5px] text-muted mt-1.5">Newsletter publishing - cookie auth, no OAuth.</p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${
+                    isSubstackConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'
+                  }`}>
+                    {isSubstackConnected ? 'Connected' : 'Not Connected'}
+                  </span>
+                  {isSubstackConnected && substackCheck.publication_url && (
+                    <span className="text-[11px] text-muted/70 truncate max-w-[160px]">{substackCheck.publication_url.replace('https://','')}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {isSubstackConnected && (
+                <button
+                  onClick={handleSubstackDisconnect}
+                  className="shrink-0 font-medium text-[11px] rounded-[10px] px-3 py-2.5 bg-ink border border-line text-muted hover:text-red-400"
+                >
+                  Disconnect
+                </button>
+              )}
+              <button
+                onClick={() => handleConnect('substack')}
+                disabled={!!connecting}
+                className={`relative shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${
+                  isSubstackConnected 
+                    ? 'bg-ink border border-line text-muted hover:text-offwhite' 
+                    : 'bg-[#FF6719] text-white hover:bg-[#FF6719]/90 shadow-[0_4px_14px_rgba(255,103,25,0.35)]'
+                }`}
+              >
+                {connecting === 'substack' ? '...' : isSubstackConnected ? 'Reconnect' : 'Connect'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Substack Modal - No Kharwari */}
+      {showSubstackModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface border border-line rounded-[20px] p-6 w-full max-w-[440px] shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-[#FF6719] rounded-[10px] flex items-center justify-center">
+                <span className="text-white font-black">S</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-[16px] text-offwhite">Connect Substack</h2>
+                <p className="text-[11px] text-muted">2 min - No API key, no OAuth</p>
+              </div>
+              <button onClick={()=>setShowSubstackModal(false)} className="ml-auto w-8 h-8 rounded-full bg-ink flex items-center justify-center text-muted hover:text-offwhite">✕</button>
+            </div>
+            
+            <div className="bg-[#FF6719]/10 border border-[#FF6719]/20 p-3 rounded-[12px] mb-4">
+              <div className="text-[11px] font-bold text-[#FF6719] mb-1">📋 Kaise SID Lena Hai:</div>
+              <div className="text-[11px] text-muted leading-[1.6]">
+                1. <a href="https://substack.com" target="_blank" className="text-[#FF6719] underline">substack.com</a> pe login karo<br/>
+                2. Keyboard pe <span className="bg-ink px-1.5 py-0.5 rounded text-[10px] font-mono">F12</span> dabao (DevTools)<br/>
+                3. <b>Application</b> tab → <b>Cookies</b> → <b>https://substack.com</b><br/>
+                4. <b>substack.sid</b> ka <b>Value</b> copy karo (lamba string)
+              </div>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="text-[11px] font-bold text-offwhite flex items-center gap-1.5">
+                  Publication URL <span className="text-red-400">*</span>
+                  <span className="text-[10px] text-muted font-normal">jaise https://yoursite.substack.com</span>
+                </label>
+                <input 
+                  value={subPubUrl}
+                  onChange={e=>setSubPubUrl(e.target.value)}
+                  placeholder="https://yoursite.substack.com"
+                  className="w-full mt-1.5 p-3 rounded-[10px] bg-ink border border-line text-[13px] text-offwhite placeholder:text-muted/50 focus:border-[#FF6719]/50 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-offwhite flex items-center gap-1.5">
+                  substack.sid Cookie <span className="text-red-400">*</span>
+                  <span className="text-[10px] text-muted font-normal">100+ chars ka lamba string</span>
+                </label>
+                <textarea 
+                  value={subSid}
+                  onChange={e=>setSubSid(e.target.value)}
+                  placeholder="Paste sid here... starts with long random string"
+                  className="w-full mt-1.5 p-3 rounded-[10px] bg-ink border border-line text-[12px] font-mono text-offwhite placeholder:text-muted/50 focus:border-[#FF6719]/50 focus:outline-none h-[80px] resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-offwhite">
+                  Email <span className="text-[10px] text-muted font-normal">(optional)</span>
+                </label>
+                <input 
+                  value={subEmail}
+                  onChange={e=>setSubEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full mt-1.5 p-3 rounded-[10px] bg-ink border border-line text-[13px] text-offwhite placeholder:text-muted/50 focus:border-[#FF6719]/50 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 mt-6">
+              <button onClick={()=>setShowSubstackModal(false)} className="flex-1 py-3 rounded-[12px] bg-ink border border-line text-[13px] font-semibold text-muted hover:text-offwhite">Cancel</button>
+              <button onClick={handleSubstackConnect} disabled={connecting==='substack'} className="flex-1 py-3 rounded-[12px] bg-[#FF6719] text-white text-[13px] font-bold hover:bg-[#FF6719]/90 disabled:opacity-50 shadow-[0_4px_14px_rgba(255,103,25,0.3)]">
+                {connecting === 'substack' ? 'Connecting...' : 'Connect ✓'}
+              </button>
+            </div>
+
+            <p className="text-[10px] text-muted/60 mt-3 text-center leading-[1.4]">
+              🔒 No password needed • Only cookie • Encrypted storage • Expires in 6 months • Disconnect anytime
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 p-4 bg-ink/40 border border-line/60 rounded-[12px]">
         <div className="flex gap-3">
           <span>🔒</span>
           <div>
-            <div className="text-[12px] font-semibold text-offwhite">5 Platforms Active + TikTok</div>
-            <div className="text-[11.5px] text-muted/80 mt-1">Facebook, Threads, LinkedIn, Blogger, TikTok. TikTok ke liye video (MP4) zaroori hai. Admin: TikTok Dev Portal me app banao, Client Key/Secret set karo.</div>
+            <div className="text-[12px] font-semibold text-offwhite">6 Platforms Active — Facebook, Threads, LinkedIn, Blogger, TikTok, Substack</div>
+            <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.5]">
+              TikTok ke liye video (MP4) zaroori hai. Substack ke liye sirf Publication URL + SID chahiye — no OAuth, no API key, no approval. Admin: TikTok Dev Portal me app banao, Client Key/Secret set karo. Substack ke liye F12 → Cookies se SID copy karo.
+            </div>
           </div>
         </div>
       </div>
