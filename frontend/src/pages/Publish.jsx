@@ -12,17 +12,20 @@ const PLATFORM_OPTIONS = [
   { id: 'blogger', label: 'Blogger' },
   { id: 'substack', label: 'Substack' },
   { id: 'tiktok', label: 'TikTok' },
+  { id: 'youtube', label: 'YouTube' },
 ]
 
 const SHORT_TEXT_PLATFORMS = ['threads', 'twitter']
 
 const BLOG_PLATFORMS = ['blogger', 'substack']
 
-const HASHTAG_PLATFORMS = ['fb_page', 'ig', 'threads', 'twitter', 'linkedin_profile', 'linkedin_page', 'tiktok']
+const TITLE_PLATFORMS = ['blogger', 'substack', 'youtube']
+
+const HASHTAG_PLATFORMS = ['fb_page', 'ig', 'threads', 'twitter', 'linkedin_profile', 'linkedin_page', 'tiktok', 'youtube']
 
 const LOCATION_PLATFORMS = ['fb_page', 'ig', 'blogger']
 
-const VIDEO_PLATFORMS = ['tiktok', 'ig', 'fb_page', 'threads']
+const VIDEO_PLATFORMS = ['tiktok', 'ig', 'fb_page', 'threads', 'youtube']
 
 const STATUS_STYLES = {
   published: 'text-signal border-signal/40 bg-signal/10',
@@ -97,13 +100,14 @@ export default function Publish() {
   const [error, setError] = useState('')
   const fileRef = useRef(null)
 
-  const needsTitle = platforms.some((p) => BLOG_PLATFORMS.includes(p))
+  const needsTitle = platforms.some((p) => TITLE_PLATFORMS.includes(p))
   const needsShortCaption = platforms.some((p) => SHORT_TEXT_PLATFORMS.includes(p))
   const needsHashtags = platforms.some((p) => HASHTAG_PLATFORMS.includes(p))
   const needsLocation = platforms.some((p) => LOCATION_PLATFORMS.includes(p))
   const needsLabels = platforms.includes('blogger')
   const igNeedsMedia = platforms.includes('ig') && !mediaUrl
   const tiktokNeedsVideo = platforms.includes('tiktok') && (!mediaUrl || mediaType !== 'video')
+  const youtubeNeedsVideo = platforms.includes('youtube') && (!mediaUrl || mediaType !== 'video')
 
   const togglePlatform = (id) => {
     setPlatforms((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
@@ -162,14 +166,18 @@ export default function Publish() {
         const res = await api.schedulePost({ ...payload, scheduled_at: iso })
         setScheduled(res)
       }
-      setCaption('')
-      setTitle('')
-      setShortCaption('')
-      setHashtags('')
-      setLocation('')
-      setLabelsText('')
-      setMediaUrl('')
-      setMediaType(null)
+      // Don't clear immediately - let user see results first
+      // Clear after 2 sec
+      setTimeout(() => {
+        setCaption('')
+        setTitle('')
+        setShortCaption('')
+        setHashtags('')
+        setLocation('')
+        setLabelsText('')
+        setMediaUrl('')
+        setMediaType(null)
+      }, 2000)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -177,13 +185,34 @@ export default function Publish() {
     }
   }
 
+  const getPlatformStatus = (platformId) => {
+    if (!results) return null
+    return results[platformId] || results[platformId.toLowerCase()] || null
+  }
+
+  const getPlatformIcon = (id) => {
+    const icons = {
+      fb_page: '📘',
+      ig: '📸',
+      threads: '🧵',
+      twitter: '🐦',
+      linkedin_profile: '💼',
+      linkedin_page: '🏢',
+      blogger: '📝',
+      substack: '📰',
+      tiktok: '🎵',
+      youtube: '▶️',
+    }
+    return icons[id] || '📤'
+  }
+
   return (
     <div>
       <header className="mb-8">
-        <div className="font-mono text-[11px] text-signal mb-1">02 · BROADCAST</div>
+        <div className="font-mono text-[11px] text-signal mb-1">02 · BROADCAST · 10 CHANNELS</div>
         <h1 className="font-display font-bold text-2xl text-offwhite">Publish to channels</h1>
         <p className="text-muted text-sm mt-1">
-          Ek caption, image ya video, jitne channels chaho — abhi ya schedule karke. TikTok ke liye video zaroori!
+          Ek caption, image ya video, jitne channels chaho — abhi ya schedule karke. TikTok + YouTube ke liye video zaroori! YouTube pe title zaroori hai.
         </p>
       </header>
 
@@ -191,27 +220,34 @@ export default function Publish() {
         {needsTitle && (
           <div>
             <label className="text-xs font-medium text-muted uppercase tracking-wide">
-              Title <span className="text-muted/60 normal-case">(Blogger ke liye zaroori)</span>
+              Title <span className="text-muted/60 normal-case">(Blogger + Substack + YouTube ke liye zaroori)</span>
+              {platforms.includes('youtube') && <span className="ml-2 text-[#FF0000] text-[11px]">▶ YouTube Title: 100 chars max</span>}
             </label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Post ka title"
+              placeholder={platforms.includes('youtube') ? "YouTube video title (e.g. How I Made $1000 Online)" : "Post ka title"}
               className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none"
+              maxLength={platforms.includes('youtube') ? 100 : undefined}
             />
+            {platforms.includes('youtube') && (
+              <p className="text-[11px] text-muted mt-1">{title.length}/100 chars — YouTube pe ye video ka title banega</p>
+            )}
           </div>
         )}
 
         <div>
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">Caption</label>
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">Caption / Description</label>
           <textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             rows={4}
-            placeholder="Apna final caption yahan paste karo… TikTok pe ye caption + hashtags jayega"
+            placeholder="Apna final caption yahan paste karo… YouTube pe ye description banega, TikTok pe caption + hashtags"
             className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none resize-none"
           />
-          <p className="text-[11px] text-muted mt-1">Ye caption Facebook, Instagram, LinkedIn, Blogger, TikTok sab par jayega.</p>
+          <p className="text-[11px] text-muted mt-1">
+            Facebook, Instagram, LinkedIn, Blogger, TikTok, YouTube sab par jayega. YouTube pe description me hashtags bhi aayenge.
+          </p>
         </div>
 
         {needsShortCaption && (
@@ -234,7 +270,11 @@ export default function Publish() {
         )}
 
         <div>
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">Media (image / video) {platforms.includes('tiktok') && <span className="text-[#FF0050]">- TikTok ke liye VIDEO zaroori (MP4)</span>}</label>
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">
+            Media (image / video) 
+            {platforms.includes('tiktok') && <span className="text-[#FF0050] ml-2">- TikTok ke liye VIDEO zaroori (MP4)</span>}
+            {platforms.includes('youtube') && <span className="text-[#FF0000] ml-2">- YouTube ke liye VIDEO zaroori (MP4/MOV)</span>}
+          </label>
           <div className="mt-2 flex items-center gap-3">
             <label className="cursor-pointer text-xs font-medium bg-ink border border-line rounded-lg px-3 py-2 text-offwhite hover:border-signal transition">
               {uploading ? 'Uploading…' : 'Choose file'}
@@ -269,7 +309,7 @@ export default function Publish() {
             <p className="text-[11px] text-coral mt-1 font-medium">⚠ {mediaHostWarning}</p>
           )}
           <p className="text-[11px] text-muted mt-1">
-            Facebook/Instagram/Threads ko publicly reachable URL chahiye — auto free hosting se ho jayega. TikTok ke liye MP4 video zaroori hai.
+            Facebook/Instagram/Threads ko publicly reachable URL chahiye — auto free hosting se ho jayega. TikTok + YouTube ke liye MP4 video zaroori hai.
           </p>
           {igNeedsMedia && (
             <p className="text-[11px] text-coral mt-1 font-medium">
@@ -281,20 +321,25 @@ export default function Publish() {
               ⚠ TikTok ke liye VIDEO zaroori hai — sirf image se TikTok post nahi hoga! MP4/MOV upload karo.
             </p>
           )}
+          {youtubeNeedsVideo && (
+            <p className="text-[11px] text-[#FF0000] mt-1 font-medium">
+              ⚠ YouTube ke liye VIDEO zaroori hai — image se YouTube pe upload nahi hoga! MP4/MOV upload karo.
+            </p>
+          )}
         </div>
 
         {needsHashtags && (
           <div>
             <label className="text-xs font-medium text-muted uppercase tracking-wide">
-              Hashtags <span className="text-muted/60 normal-case">(TikTok pe bhi kaam karte hain!)</span>
+              Hashtags <span className="text-muted/60 normal-case">(TikTok + YouTube pe bhi kaam karte hain!)</span>
             </label>
             <input
               value={hashtags}
               onChange={(e) => setHashtags(e.target.value)}
-              placeholder="#AI #Karachi #TikTokViral #Automation"
+              placeholder="#AI #Karachi #TikTokViral #YouTube #Automation"
               className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none"
             />
-            <p className="text-[11px] text-muted mt-1">Caption ke aakhir mein add ho jayenge — TikTok pe viral hone ke liye important!</p>
+            <p className="text-[11px] text-muted mt-1">Caption ke aakhir mein add ho jayenge — TikTok + YouTube pe viral hone ke liye important!</p>
           </div>
         )}
 
@@ -327,24 +372,58 @@ export default function Publish() {
         )}
 
         <div>
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">Send to {platforms.includes('tiktok') && <span className="text-[#FF0050] normal-case">- TikTok selected: video required!</span>}</label>
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">
+            Send to {platforms.length > 0 && <span className="text-signal">({platforms.length} selected)</span>}
+            {platforms.includes('tiktok') && <span className="text-[#FF0050] normal-case ml-2">- TikTok: video required!</span>}
+            {platforms.includes('youtube') && <span className="text-[#FF0000] normal-case ml-2">- YouTube: video + title required!</span>}
+          </label>
           <div className="flex flex-wrap gap-2 mt-2">
-            {PLATFORM_OPTIONS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => togglePlatform(p.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  platforms.includes(p.id)
-                    ? p.id === 'tiktok' 
-                      ? 'bg-[#FF0050]/20 border-[#FF0050] text-[#FF0050]'
-                      : 'bg-signal/15 border-signal text-signal'
-                    : 'border-line text-muted hover:text-offwhite'
-                }`}
-              >
-                {p.label} {p.id === 'tiktok' ? '🎵' : ''}
-              </button>
-            ))}
+            {PLATFORM_OPTIONS.map((p) => {
+              const status = getPlatformStatus(p.id)
+              const isSelected = platforms.includes(p.id)
+              return (
+                <div key={p.id} className="relative">
+                  <button
+                    onClick={() => togglePlatform(p.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5 ${
+                      isSelected
+                        ? p.id === 'tiktok' 
+                          ? 'bg-[#FF0050]/20 border-[#FF0050] text-[#FF0050]'
+                          : p.id === 'youtube'
+                          ? 'bg-[#FF0000]/20 border-[#FF0000] text-[#FF0000]'
+                          : 'bg-signal/15 border-signal text-signal'
+                        : 'border-line text-muted hover:text-offwhite'
+                    }`}
+                  >
+                    <span>{getPlatformIcon(p.id)}</span>
+                    {p.label} 
+                    {p.id === 'tiktok' ? '🎵' : p.id === 'youtube' ? '▶️' : ''}
+                    {status && (
+                      <span className={`ml-1 w-2 h-2 rounded-full ${status.status === 'published' || status.success ? 'bg-signal' : status.status === 'error' ? 'bg-coral' : 'bg-saffron'}`} />
+                    )}
+                  </button>
+                  {status && (
+                    <div className={`absolute top-full left-0 mt-1 z-10 min-w-[200px] p-2 rounded-lg border text-[10px] font-mono shadow-lg backdrop-blur ${
+                      status.status === 'published' || status.success
+                        ? 'bg-signal/10 border-signal/30 text-signal'
+                        : 'bg-coral/10 border-coral/30 text-coral'
+                    }`}>
+                      <div className="font-bold">{p.label}: {status.status === 'published' || status.success ? '✅ Success' : '❌ Failed'}</div>
+                      <div className="mt-1 opacity-80 break-words">
+                        {status.message || status.error || (status.url ? `URL: ${status.url}` : 'Published')}
+                      </div>
+                      {status.url && (
+                        <a href={status.url} target="_blank" rel="noreferrer" className="mt-1 block underline">View Post →</a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
+          {platforms.length === 0 && (
+            <p className="text-[11px] text-coral mt-2">⚠ Kam se kam ek channel select karo!</p>
+          )}
         </div>
 
         <div>
@@ -390,16 +469,19 @@ export default function Publish() {
 
         <button
           onClick={handleSubmit}
-          disabled={loading || uploading || !caption.trim() || platforms.length === 0}
+          disabled={loading || uploading || !caption.trim() || platforms.length === 0 || (platforms.includes('youtube') && !title.trim())}
           className="w-full bg-signal text-ink font-semibold text-sm rounded-lg py-2.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
           {loading
             ? mode === 'now' ? 'Transmitting…' : 'Scheduling…'
             : mode === 'now'
-              ? `Publish to ${platforms.length} channel${platforms.length === 1 ? '' : 's'} ${platforms.includes('tiktok') ? 'including TikTok' : ''}`
+              ? `Publish to ${platforms.length} channel${platforms.length === 1 ? '' : 's'} ${platforms.includes('youtube') ? 'including YouTube ▶️' : platforms.includes('tiktok') ? 'including TikTok 🎵' : ''}`
               : `Schedule for ${platforms.length} channel${platforms.length === 1 ? '' : 's'}`}
         </button>
-        {error && <div className="text-coral text-sm font-mono">{error}</div>}
+        {platforms.includes('youtube') && !title.trim() && (
+          <p className="text-[11px] text-[#FF0000] font-medium">⚠ YouTube ke liye Title zaroori hai!</p>
+        )}
+        {error && <div className="text-coral text-sm font-mono bg-coral/10 border border-coral/20 p-3 rounded-lg">{error}</div>}
       </div>
 
       {scheduled && (
@@ -409,22 +491,54 @@ export default function Publish() {
       )}
 
       {results && (
-        <div className="mt-6 space-y-2">
-          {Object.entries(results).map(([platform, res]) => (
-            <div
-              key={platform}
-              className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 ${STATUS_STYLES[res.status] || STATUS_STYLES.error}`}
-            >
-              <div>
-                <div className="font-mono text-xs uppercase">{platform} {res.inbox ? '(Inbox)' : ''}</div>
-                <div className="text-xs opacity-80 mt-1">
-                  {res.message || (res.detail && JSON.stringify(res.detail).slice(0, 140)) || 'Published successfully'}
-                  {res.inbox && ' - Open TikTok app to finalize!'}
+        <div className="mt-6 space-y-3">
+          <h3 className="text-xs font-bold text-offwhite uppercase tracking-wide">Publish Results — Har Channel ka Status Neeche:</h3>
+          {Object.entries(results).map(([platform, res]) => {
+            const isSuccess = res.status === 'published' || res.success
+            const platformLabel = PLATFORM_OPTIONS.find(p => p.id === platform || p.id.toLowerCase() === platform.toLowerCase())?.label || platform
+            return (
+              <div
+                key={platform}
+                className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 ${isSuccess ? 'bg-signal/10 border-signal/30' : 'bg-coral/10 border-coral/30'} transition-all`}
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[14px]">{getPlatformIcon(platform)}</span>
+                    <div className="font-mono text-xs uppercase font-bold text-offwhite">{platformLabel}</div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isSuccess ? 'bg-signal text-ink' : 'bg-coral text-white'}`}>
+                      {isSuccess ? '✅ SUCCESS' : '❌ FAILED'}
+                    </span>
+                    {res.inbox && <span className="text-[10px] bg-saffron/20 text-saffron border border-saffron/30 px-2 py-0.5 rounded-full">INBOX</span>}
+                  </div>
+                  <div className="text-xs mt-2 leading-relaxed">
+                    <div className={isSuccess ? 'text-signal' : 'text-coral'}>
+                      {res.message || res.error || (res.detail && JSON.stringify(res.detail).slice(0, 200)) || (isSuccess ? 'Published successfully' : 'Failed')}
+                    </div>
+                    {res.url && (
+                      <div className="mt-2">
+                        <a href={res.url} target="_blank" rel="noreferrer" className="text-[11px] text-signal underline font-mono break-all">
+                          🔗 {res.url}
+                        </a>
+                      </div>
+                    )}
+                    {res.post_id && (
+                      <div className="text-[10px] text-muted font-mono mt-1">Post ID: {res.post_id}</div>
+                    )}
+                    {res.video_id && (
+                      <div className="text-[10px] text-muted font-mono mt-1">Video ID: {res.video_id}</div>
+                    )}
+                    {res.inbox && <div className="text-[11px] text-saffron mt-1">📩 Open TikTok app to finalize!</div>}
+                  </div>
                 </div>
+                <span className={`font-mono text-[10px] uppercase shrink-0 px-2 py-1 rounded ${isSuccess ? 'bg-signal/20 text-signal' : 'bg-coral/20 text-coral'}`}>
+                  {res.status || (isSuccess ? 'published' : 'error')}
+                </span>
               </div>
-              <span className="font-mono text-[10px] uppercase shrink-0">{res.status}</span>
-            </div>
-          ))}
+            )
+          })}
+          <div className="text-[11px] text-muted mt-3 p-3 bg-ink/50 border border-line/50 rounded-lg">
+            💡 <b>Tip:</b> Har channel ke neeche success/error dikhega. YouTube pe video 2-3 min me process hota hai. Agar fail hua to error message yahi dikhega — quota, video size, ya auth issue ho sakta hai.
+          </div>
         </div>
       )}
     </div>
