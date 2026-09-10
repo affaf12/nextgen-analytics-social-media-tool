@@ -25,15 +25,21 @@ async function sha256Challenge(verifier) {
 
 // Step 1: OpenRouter par redirect karo — "Connect" button yeh call karega.
 export async function startOpenRouterConnect() {
-  const verifier = randomVerifier()
-  sessionStorage.setItem(VERIFIER_STORAGE_KEY, verifier)
-  const challenge = await sha256Challenge(verifier)
-  const callbackUrl = window.location.href.split('?')[0].split('#')[0]
-  const authUrl = new URL('https://openrouter.ai/auth')
-  authUrl.searchParams.set('callback_url', callbackUrl)
-  authUrl.searchParams.set('code_challenge', challenge)
-  authUrl.searchParams.set('code_challenge_method', 'S256')
-  window.location.href = authUrl.toString()
+  try {
+    const verifier = randomVerifier()
+    sessionStorage.setItem(VERIFIER_STORAGE_KEY, verifier)
+    const challenge = await sha256Challenge(verifier)
+    const callbackUrl = window.location.href.split('?')[0].split('#')[0]
+    const authUrl = new URL('https://openrouter.ai/auth')
+    authUrl.searchParams.set('callback_url', callbackUrl)
+    authUrl.searchParams.set('code_challenge', challenge)
+    authUrl.searchParams.set('code_challenge_method', 'S256')
+    console.log('Redirecting to OpenRouter:', authUrl.toString())
+    window.location.href = authUrl.toString()
+  } catch (e) {
+    console.error('OpenRouter connect failed', e)
+    alert('OpenRouter connect fail: ' + e.message)
+  }
 }
 
 // Step 2: page reload hote hi call karo (Settings.jsx ke useEffect mein) — agar URL
@@ -42,8 +48,9 @@ export function consumePendingOpenRouterCode() {
   const params = new URLSearchParams(window.location.search)
   const code = params.get('code')
   if (!code) return null
-  const verifier = sessionStorage.getItem(VERIFIER_STORAGE_KEY) || null
+  const verifier = sessionStorage.getItem(VERIFIER_STORAGE_KEY) || localStorage.getItem('affaf-crm:openrouter-pkce-verifier') || null
   sessionStorage.removeItem(VERIFIER_STORAGE_KEY)
+  localStorage.removeItem('affaf-crm:openrouter-pkce-verifier')
   // URL se ?code= hata do taake refresh par dobara exchange na ho
   params.delete('code')
   const newSearch = params.toString()
