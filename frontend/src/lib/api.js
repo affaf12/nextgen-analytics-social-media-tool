@@ -1,10 +1,8 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const BASE_URL = import.meta.env.VITE_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : 'https://nextgen-analytics-social-media-tool.fastapicloud.dev')
 
-// Har browser ko ek dafa random, private workspace ID milta hai (koi login/signup
-// nahi) aur localStorage mein save ho jata hai. Yeh har request ke sath backend ko
-// jata hai taake tumhari API keys, leads, aur scheduled posts sirf ISI browser se
-// linked rahen — koi doosra banda jo yeh app use kare, uski apni alag, khaali
-// workspace hogi, kabhi tumhari saved keys use nahi hongi.
 const WORKSPACE_STORAGE_KEY = 'affaf-crm:workspace-id'
 
 function getWorkspaceId() {
@@ -16,29 +14,29 @@ function getWorkspaceId() {
     }
     return id
   } catch {
-    // localStorage unavailable (private browsing, etc.) — falls back to shared/default
     return 'default'
   }
 }
 
 async function request(path, options = {}) {
   const isForm = options.body instanceof FormData
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const url = `${BASE_URL}${path}`
+  const res = await fetch(url, {
     headers: {
       ...(isForm ? {} : { 'Content-Type': 'application/json' }),
       'X-Workspace-Id': getWorkspaceId(),
     },
     ...options,
   })
-  const data = await res.json().catch(() => ({}))
+  const text = await res.text()
+  let data
+  try { data = text ? JSON.parse(text) : {} } catch { data = { detail: text } }
   if (!res.ok) {
-    throw new Error(data.detail ? JSON.stringify(data.detail) : `Request failed (${res.status})`)
+    throw new Error(data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : `Request failed (${res.status}) - ${text.slice(0,200)}`)
   }
   return data
 }
 
-// CSV jaisi file downloads ke liye — request() JSON parse karta hai jo CSV ke liye kaam
-// nahi karta, isliye ye alag helper file ko seedha browser mein "Save As" trigger karta hai
 async function downloadFile(path) {
   const res = await fetch(`${BASE_URL}${path}`, { headers: { 'X-Workspace-Id': getWorkspaceId() } })
   if (!res.ok) {
@@ -60,6 +58,7 @@ async function downloadFile(path) {
 }
 
 export const api = {
+  baseUrl: BASE_URL,
   generate: (payload) => request('/api/generate', { method: 'POST', body: JSON.stringify(payload) }),
   publish: (payload) => request('/api/post/publish', { method: 'POST', body: JSON.stringify(payload) }),
   uploadMedia: (file) => {
@@ -89,11 +88,16 @@ export const api = {
   updateLead: (id, payload) => request(`/api/crm/leads/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
   deleteLead: (id) => request(`/api/crm/leads/${id}`, { method: 'DELETE' }),
 
-  // Settings
+  // Settings - FIXED
   checkSettings: () => request('/api/settings/check'),
   getSettingsKeys: () => request('/api/settings/keys'),
   saveSettingsKeys: (values) => request('/api/settings/keys', { method: 'POST', body: JSON.stringify({ values }) }),
   refreshSubstackCookie: () => request('/api/settings/substack/refresh', { method: 'POST' }),
+  
+  // FIXED: OpenRouter exchange - yahi pe Not Found aa raha tha
   exchangeOpenRouterCode: (code, code_verifier) =>
     request('/api/settings/openrouter/exchange', { method: 'POST', body: JSON.stringify({ code, code_verifier }) }),
+
+  // FIXED: Facebook login URL - endpoint /api/auth/facebook hai, /login-url nahi
+  getFacebookLoginUrl: () => request('/api/auth/facebook'),
 }
