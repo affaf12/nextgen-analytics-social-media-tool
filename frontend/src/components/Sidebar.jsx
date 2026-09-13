@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
 
 const links = [
-  { to: '/', label: 'Generator', code: '01' },
-  { to: '/publish', label: 'Broadcast', code: '02' },
-  { to: '/calendar', label: 'Calendar', code: '03' },
-  { to: '/leads', label: 'Leads', code: '04' },
-  { to: '/settings', label: 'Channels', code: '05' },
+  { to: '/app', label: 'Generator', code: '01' },
+  { to: '/app/publish', label: 'Broadcast', code: '02' },
+  { to: '/app/calendar', label: 'Calendar', code: '03' },
+  { to: '/app/leads', label: 'Leads', code: '04' },
+  { to: '/app/settings', label: 'Channels', code: '05' },
 ]
 
 export default function Sidebar() {
@@ -20,7 +20,7 @@ export default function Sidebar() {
           <NavLink
             key={l.to}
             to={l.to}
-            end={l.to === '/'}
+            end={l.to === '/app'}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
