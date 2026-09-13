@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../lib/auth.jsx'
 
 const links = [
   { to: '/app', label: 'Generator', code: '01' },
@@ -9,6 +10,14 @@ const links = [
 ]
 
 export default function Sidebar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <aside className="w-60 shrink-0 border-r border-line bg-surface/60 flex flex-col h-screen sticky top-0">
       <div className="px-5 py-6 border-b border-line">
@@ -34,8 +43,22 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-5 py-4 border-t border-line font-mono text-[10px] text-muted leading-relaxed">
-        Karachi, PK
+      <div className="px-5 py-4 border-t border-line">
+        {user && (
+          <div className="mb-3">
+            <div className="text-[13px] font-medium text-offwhite truncate">{user.name}</div>
+            <div className="font-mono text-[10px] text-muted truncate">{user.email}</div>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="text-[12px] font-medium text-muted hover:text-coral transition-colors"
+        >
+          Log out
+        </button>
+        <div className="font-mono text-[10px] text-muted leading-relaxed mt-3">
+          Karachi, PK
+        </div>
       </div>
     </aside>
   )
