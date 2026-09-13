@@ -15,7 +15,7 @@ const STEPS = [
   {
     code: '01',
     title: 'Write once',
-    body: 'One prompt becomes three platform-tuned caption variations — no external AI bill, it\u2019s template-based.',
+    body: 'One prompt becomes three platform-tuned caption variations â€” no external AI bill, it\u2019s template-based.',
   },
   {
     code: '02',
@@ -79,12 +79,20 @@ export default function Landing() {
           </div>
           <div className="font-mono text-[11px] text-muted mt-0.5">Social Media Tool</div>
         </div>
-        <Link
-          to="/app"
-          className="text-sm font-medium text-offwhite border border-line rounded-lg px-4 py-2 hover:border-signal hover:text-signal transition-colors"
-        >
-          Open the app
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/login"
+            className="text-sm font-medium text-muted hover:text-offwhite transition-colors"
+          >
+            Log in
+          </Link>
+          <Link
+            to="/signup"
+            className="text-sm font-medium text-offwhite border border-line rounded-lg px-4 py-2 hover:border-signal hover:text-signal transition-colors"
+          >
+            Sign up
+          </Link>
+        </div>
       </header>
 
       <section className="flex-1 px-6 sm:px-10 py-10 sm:py-16 grid md:grid-cols-2 gap-12 items-center max-w-6xl mx-auto w-full">
@@ -94,20 +102,23 @@ export default function Landing() {
           </h1>
           <p className="mt-5 text-muted text-[15px] leading-relaxed">
             One caption, scheduled or sent instantly across Facebook, Instagram, Threads,
-            X, LinkedIn, Blogger, Medium and Substack — with the leads it brings in
+            X, LinkedIn, Blogger, Medium and Substack â€” with the leads it brings in
             tracked in one pipeline.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
-              to="/app"
+              to="/signup"
               className="inline-flex items-center justify-center rounded-lg bg-signal text-ink font-semibold text-sm px-5 py-3 hover:brightness-110 transition"
             >
-              Open the app
+              Create free account
             </Link>
-            <span className="font-mono text-[11px] text-muted">
-              Bring your own API keys — nothing routes through our servers.
-            </span>
+            <Link to="/login" className="font-mono text-[11px] text-muted hover:text-offwhite transition-colors">
+              Already have an account? Log in
+            </Link>
           </div>
+          <p className="mt-4 font-mono text-[11px] text-muted">
+            Bring your own API keys â€” each account's keys and data stay separate from everyone else's.
+          </p>
         </div>
 
         <BroadcastDiagram />
@@ -137,3 +148,5 @@ export default function Landing() {
     </div>
   )
 }
+
+
