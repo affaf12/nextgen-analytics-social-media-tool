@@ -58,10 +58,14 @@ async function downloadFile(path) {
 export const api = {
   baseUrl: BASE_URL,
 
-  // Account (signup/login) â€” public, no Authorization header needed
+  // Account (signup/login) — public, no Authorization header needed
   signup: (payload) => request('/api/account/signup', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload) => request('/api/account/login', { method: 'POST', body: JSON.stringify(payload) }),
   me: () => request('/api/account/me'),
+
+  // NEW: Forget Password System
+  forgotPassword: (payload) => request('/api/account/forgot-password', { method: 'POST', body: JSON.stringify(payload) }),
+  resetPassword: (payload) => request('/api/account/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
 
   generate: (payload) => request('/api/generate', { method: 'POST', body: JSON.stringify(payload) }),
   publish: (payload) => request('/api/post/publish', { method: 'POST', body: JSON.stringify(payload) }),
