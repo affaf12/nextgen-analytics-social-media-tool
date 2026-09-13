@@ -4,6 +4,8 @@ import Sidebar from './components/Sidebar.jsx'
 import Landing from './pages/Landing.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 import Generator from './pages/Generator.jsx'
 import Publish from './pages/Publish.jsx'
 import Calendar from './pages/Calendar.jsx'
@@ -14,7 +16,6 @@ import Privacy from './pages/Privacy.jsx'
 
 function PrivateLayout() {
   const { user, loading } = useAuth()
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0B0B14]">
@@ -22,11 +23,9 @@ function PrivateLayout() {
       </div>
     )
   }
-
   if (!user) {
     return <Navigate to="/login" replace />
   }
-
   return (
     <div className="flex min-h-screen bg-[#0B0B14]">
       <Sidebar />
@@ -41,12 +40,12 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Public */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Protected /app/* */}
         <Route path="/app" element={<PrivateLayout />}>
           <Route index element={<Generator />} />
           <Route path="publish" element={<Publish />} />
@@ -55,13 +54,11 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
         </Route>
 
-        {/* TikTok Verification - Terms & Privacy - No deletion, only added */}
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/nextgen-analytics-social-media-tool/terms" element={<Terms />} />
         <Route path="/nextgen-analytics-social-media-tool/privacy" element={<Privacy />} />
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
