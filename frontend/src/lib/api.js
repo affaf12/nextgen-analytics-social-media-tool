@@ -3,19 +3,17 @@ const BASE_URL = import.meta.env.VITE_API_URL ||
     ? 'http://localhost:8000' 
     : 'https://nextgen-analytics-social-media-tool.fastapicloud.dev')
 
-const WORKSPACE_STORAGE_KEY = 'affaf-crm:workspace-id'
+const TOKEN_KEY = 'affaf-crm:auth-token'
 
-function getWorkspaceId() {
-  try {
-    let id = localStorage.getItem(WORKSPACE_STORAGE_KEY)
-    if (!id) {
-      id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`)
-      localStorage.setItem(WORKSPACE_STORAGE_KEY, id)
-    }
-    return id
-  } catch {
-    return 'default'
-  }
+function getToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || '' } catch { return '' }
+}
+
+// Exported so raw fetch() calls elsewhere (Settings.jsx OAuth-connect flows) can
+// attach the same Authorization header without going through request().
+export function authHeaders() {
+  const token = getToken()
+  return token ? { 'Authorization': `Bearer ${token}` } : {}
 }
 
 async function request(path, options = {}) {
@@ -24,7 +22,7 @@ async function request(path, options = {}) {
   const res = await fetch(url, {
     headers: {
       ...(isForm ? {} : { 'Content-Type': 'application/json' }),
-      'X-Workspace-Id': getWorkspaceId(),
+      ...authHeaders(),
     },
     ...options,
   })
@@ -38,7 +36,7 @@ async function request(path, options = {}) {
 }
 
 async function downloadFile(path) {
-  const res = await fetch(`${BASE_URL}${path}`, { headers: { 'X-Workspace-Id': getWorkspaceId() } })
+  const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
     throw new Error(data.detail ? JSON.stringify(data.detail) : `Request failed (${res.status})`)
@@ -59,6 +57,12 @@ async function downloadFile(path) {
 
 export const api = {
   baseUrl: BASE_URL,
+
+  // Account (signup/login) â€” public, no Authorization header needed
+  signup: (payload) => request('/api/account/signup', { method: 'POST', body: JSON.stringify(payload) }),
+  login: (payload) => request('/api/account/login', { method: 'POST', body: JSON.stringify(payload) }),
+  me: () => request('/api/account/me'),
+
   generate: (payload) => request('/api/generate', { method: 'POST', body: JSON.stringify(payload) }),
   publish: (payload) => request('/api/post/publish', { method: 'POST', body: JSON.stringify(payload) }),
   uploadMedia: (file) => {
