@@ -100,7 +100,7 @@ export default function Settings() {
     
     if (connectedParam) {
       if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok', 'substack', 'youtube', 'google_business', 'google-business', 'openrouter'].includes(connectedParam)) {
-        setSuccessMsg(`${connectedParam} Successfully Connected âœ“`)
+        setSuccessMsg(`${connectedParam} Successfully Connected ✓`)
         setTimeout(() => load(), 1200)
       }
       window.history.replaceState({}, '', window.location.pathname)
@@ -118,8 +118,8 @@ export default function Settings() {
       setAiMsg('OpenRouter se connect ho raha hai...')
       api.exchangeOpenRouterCode(pending.code, pending.verifier)
         .then(() => {
-          setAiMsg('OpenRouter connected âœ“ â€” Free models ready')
-          setSuccessMsg('AI Content Generation Connected âœ“ â€” Bina card ke free')
+          setAiMsg('OpenRouter connected ✓ — Free models ready')
+          setSuccessMsg('AI Content Generation Connected ✓ — Bina card ke free')
           load()
         })
         .catch((e) => setError('OpenRouter connect failed: ' + e.message))
@@ -274,7 +274,7 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8 pb-28">
       <div className="mb-8">
         <h1 className="font-display font-bold text-2xl text-offwhite mb-2 tracking-tight">Connect Accounts</h1>
-        <p className="text-sm text-muted leading-relaxed">9 Platforms â€” Sirf Connect button dabao, koi manual API key nahi. Bina card ke AI bhi free.</p>
+        <p className="text-sm text-muted leading-relaxed">9 Platforms — Sirf Connect button dabao, koi manual API key nahi. Bina card ke AI bhi free.</p>
       </div>
       
       {error && (
@@ -306,7 +306,7 @@ export default function Settings() {
                   {isAiConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                   <span className="text-[10px] bg-signal/20 text-signal border border-signal/30 px-2 py-0.5 rounded-full font-bold">FREE - NO CARD</span>
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">OpenRouter â€” Llama, Mistral, Gemma free. Ek click me connect.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">OpenRouter — Llama, Mistral, Gemma free. Ek click me connect.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isAiConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
                     {isAiConnected ? 'Connected' : 'Not Connected'}
@@ -324,6 +324,74 @@ export default function Settings() {
               className={`shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-signal text-black hover:brightness-110 shadow-glow'}`}
             >
               {aiConnecting ? 'Connecting...' : isAiConnected ? 'Reconnect' : 'Connect'}
+            </button>
+          </div>
+        </div>
+
+        {/* ChatGPT - FREE via OpenRouter OAuth - NO API KEY PASTE */}
+        <div className="group relative bg-surface border border-line hover:border-[#10a37f]/40 rounded-[16px] p-5 sm:p-6 transition-all">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-11 h-11 bg-[#10a37f] rounded-[12px] flex items-center justify-center shrink-0">
+                <span className="text-white font-black text-[14px]">GPT</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
+                  ChatGPT (Free) 
+                  {isAiConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
+                  <span className="text-[10px] bg-[#10a37f]/20 text-[#10a37f] border border-[#10a37f]/30 px-2 py-0.5 rounded-full font-bold">OAUTH - NO KEY</span>
+                </h2>
+                <p className="text-[12.5px] text-muted mt-1.5">OpenRouter ke through GPT-4o-mini, GPT-3.5 free. Same Connect button.</p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isAiConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
+                    {isAiConnected ? 'Connected (via OpenRouter)' : 'Not Connected'}
+                  </span>
+                </div>
+                {isAiConnected && (
+                  <div className="mt-2 text-[11px] text-muted/70">Models: openai/gpt-4o-mini:free, openai/gpt-3.5-turbo:free, openai/gpt-4o:free (via OpenRouter)</div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => handleConnect('openrouter')}
+              disabled={aiConnecting || !!connecting}
+              className={`shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-[#10a37f] text-white hover:brightness-110'}`}
+            >
+              {aiConnecting ? 'Connecting...' : isAiConnected ? 'Connected ✓' : 'Connect'}
+            </button>
+          </div>
+        </div>
+
+        {/* Claude AI - FREE via OpenRouter OAuth - NO API KEY PASTE */}
+        <div className="group relative bg-surface border border-line hover:border-[#d4a27f]/40 rounded-[16px] p-5 sm:p-6 transition-all">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-11 h-11 bg-[#d4a27f] rounded-[12px] flex items-center justify-center shrink-0">
+                <span className="text-black font-black text-[14px]">C</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-[14px] text-offwhite flex items-center gap-2.5">
+                  Claude AI (Free)
+                  {isAiConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
+                  <span className="text-[10px] bg-[#d4a27f]/20 text-[#d4a27f] border border-[#d4a27f]/30 px-2 py-0.5 rounded-full font-bold">OAUTH - NO KEY</span>
+                </h2>
+                <p className="text-[12.5px] text-muted mt-1.5">OpenRouter ke through Claude 3 Haiku, Claude 3.5 Haiku free. Same Connect button.</p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isAiConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
+                    {isAiConnected ? 'Connected (via OpenRouter)' : 'Not Connected'}
+                  </span>
+                </div>
+                {isAiConnected && (
+                  <div className="mt-2 text-[11px] text-muted/70">Models: anthropic/claude-3-haiku:free, anthropic/claude-3.5-haiku:free (via OpenRouter)</div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => handleConnect('openrouter')}
+              disabled={aiConnecting || !!connecting}
+              className={`shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-[#d4a27f] text-black hover:brightness-110'}`}
+            >
+              {aiConnecting ? 'Connecting...' : isAiConnected ? 'Connected ✓' : 'Connect'}
             </button>
           </div>
         </div>
@@ -510,7 +578,7 @@ export default function Settings() {
                   YouTube
                   {isYoutubeConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">Video upload â€” direct to channel.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">Video upload — direct to channel.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isYoutubeConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
                     {isYoutubeConnected ? 'Connected' : 'Not Connected'}
@@ -537,7 +605,7 @@ export default function Settings() {
                   Google Business
                   {isGbConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">Google Business Profile â€” posts, photos, offers.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">Google Business Profile — posts, photos, offers.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isGbConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
                     {isGbConnected ? 'Connected' : 'Not Connected'}
@@ -595,8 +663,8 @@ export default function Settings() {
       )}
 
       <div className="mt-8 p-4 bg-ink/40 border border-line/60 rounded-[12px]">
-        <div className="text-[12px] font-semibold text-offwhite">9 Platforms â€” Sirf Connect Button, Koi Manual Key Nahi</div>
-        <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.5]">AI Content Generation bhi button se connect hoga â€” OpenRouter pe Authorize karo, Credit limit 0 rakho, bina card ke free models chalenge.</div>
+        <div className="text-[12px] font-semibold text-offwhite">9 Platforms — Sirf Connect Button, Koi Manual Key Nahi</div>
+        <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.5]">AI Content Generation bhi button se connect hoga — OpenRouter pe Authorize karo, Credit limit 0 rakho, bina card ke free models chalenge.</div>
       </div>
     </div>
   )
