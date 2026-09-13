@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../lib/api.js'
+import { api, authHeaders } from '../lib/api.js'
 import { startOpenRouterConnect, consumePendingOpenRouterCode } from '../lib/openrouterOAuth.js'
 
 export default function Settings() {
@@ -56,8 +56,7 @@ export default function Settings() {
       setOpenrouterCheck({ connected: !!keysData.OPENROUTER_API_KEY })
       
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
-      const wsId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
-      const headers = { 'X-Workspace-Id': wsId }
+      const headers = authHeaders()
       
       const [threadsRes, linkedinRes, bloggerRes, tiktokRes, substackRes, youtubeRes, gbRes] = await Promise.all([
         fetch(`${base}/api/auth/threads/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
@@ -101,7 +100,7 @@ export default function Settings() {
     
     if (connectedParam) {
       if (['facebook', 'threads', 'linkedin', 'blogger', 'tiktok', 'substack', 'youtube', 'google_business', 'google-business', 'openrouter'].includes(connectedParam)) {
-        setSuccessMsg(`${connectedParam} Successfully Connected ✓`)
+        setSuccessMsg(`${connectedParam} Successfully Connected âœ“`)
         setTimeout(() => load(), 1200)
       }
       window.history.replaceState({}, '', window.location.pathname)
@@ -119,8 +118,8 @@ export default function Settings() {
       setAiMsg('OpenRouter se connect ho raha hai...')
       api.exchangeOpenRouterCode(pending.code, pending.verifier)
         .then(() => {
-          setAiMsg('OpenRouter connected ✓ — Free models ready')
-          setSuccessMsg('AI Content Generation Connected ✓ — Bina card ke free')
+          setAiMsg('OpenRouter connected âœ“ â€” Free models ready')
+          setSuccessMsg('AI Content Generation Connected âœ“ â€” Bina card ke free')
           load()
         })
         .catch((e) => setError('OpenRouter connect failed: ' + e.message))
@@ -134,7 +133,6 @@ export default function Settings() {
     setSuccessMsg('')
     try {
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
-      const workspaceId = localStorage.getItem('affaf-crm:workspace-id') || localStorage.getItem('workspaceId') || 'default'
       
       if (platform === 'substack') {
         setShowSubstackModal(true)
@@ -172,7 +170,7 @@ export default function Settings() {
       }
       
       if (endpoint) {
-        const res = await fetch(endpoint, { headers: { 'X-Workspace-Id': workspaceId } })
+        const res = await fetch(endpoint, { headers: authHeaders() })
         const data = await res.json()
         if (data.login_url) {
           window.location.href = data.login_url
@@ -198,10 +196,9 @@ export default function Settings() {
     setConnecting('substack')
     try {
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
-      const wsId = localStorage.getItem('affaf-crm:workspace-id') || 'default'
       const res = await fetch(`${base}/api/auth/substack/setup`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Workspace-Id': wsId },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           sid: subSid,
           publication_url: subPubUrl,
@@ -228,8 +225,7 @@ export default function Settings() {
   const handleSubstackDisconnect = async () => {
     try {
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
-      const wsId = localStorage.getItem('affaf-crm:workspace-id') || 'default'
-      await fetch(`${base}/api/auth/substack/disconnect`, { method: 'POST', headers: { 'X-Workspace-Id': wsId } })
+      await fetch(`${base}/api/auth/substack/disconnect`, { method: 'POST', headers: authHeaders() })
       setSuccessMsg('Substack Disconnected')
       load()
     } catch (e) { setError(e.message) }
@@ -238,10 +234,9 @@ export default function Settings() {
   const handleSelectBlog = async (blog) => {
     try {
       const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
-      const wsId = localStorage.getItem('affaf-crm:workspace-id') || 'default'
       const res = await fetch(`${base}/api/auth/blogger/select-blog`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Workspace-Id': wsId },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ blog_id: blog.id, blog_name: blog.name, blog_url: blog.url })
       })
       const data = await res.json()
@@ -279,7 +274,7 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 py-8 pb-28">
       <div className="mb-8">
         <h1 className="font-display font-bold text-2xl text-offwhite mb-2 tracking-tight">Connect Accounts</h1>
-        <p className="text-sm text-muted leading-relaxed">9 Platforms — Sirf Connect button dabao, koi manual API key nahi. Bina card ke AI bhi free.</p>
+        <p className="text-sm text-muted leading-relaxed">9 Platforms â€” Sirf Connect button dabao, koi manual API key nahi. Bina card ke AI bhi free.</p>
       </div>
       
       {error && (
@@ -311,7 +306,7 @@ export default function Settings() {
                   {isAiConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                   <span className="text-[10px] bg-signal/20 text-signal border border-signal/30 px-2 py-0.5 rounded-full font-bold">FREE - NO CARD</span>
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">OpenRouter — Llama, Mistral, Gemma free. Ek click me connect.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">OpenRouter â€” Llama, Mistral, Gemma free. Ek click me connect.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isAiConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
                     {isAiConnected ? 'Connected' : 'Not Connected'}
@@ -515,7 +510,7 @@ export default function Settings() {
                   YouTube
                   {isYoutubeConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">Video upload — direct to channel.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">Video upload â€” direct to channel.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isYoutubeConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
                     {isYoutubeConnected ? 'Connected' : 'Not Connected'}
@@ -542,7 +537,7 @@ export default function Settings() {
                   Google Business
                   {isGbConnected && <span className="w-2 h-2 bg-signal rounded-full animate-pulse" />}
                 </h2>
-                <p className="text-[12.5px] text-muted mt-1.5">Google Business Profile — posts, photos, offers.</p>
+                <p className="text-[12.5px] text-muted mt-1.5">Google Business Profile â€” posts, photos, offers.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
                   <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isGbConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
                     {isGbConnected ? 'Connected' : 'Not Connected'}
@@ -600,8 +595,8 @@ export default function Settings() {
       )}
 
       <div className="mt-8 p-4 bg-ink/40 border border-line/60 rounded-[12px]">
-        <div className="text-[12px] font-semibold text-offwhite">9 Platforms — Sirf Connect Button, Koi Manual Key Nahi</div>
-        <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.5]">AI Content Generation bhi button se connect hoga — OpenRouter pe Authorize karo, Credit limit 0 rakho, bina card ke free models chalenge.</div>
+        <div className="text-[12px] font-semibold text-offwhite">9 Platforms â€” Sirf Connect Button, Koi Manual Key Nahi</div>
+        <div className="text-[11.5px] text-muted/80 mt-1 leading-[1.5]">AI Content Generation bhi button se connect hoga â€” OpenRouter pe Authorize karo, Credit limit 0 rakho, bina card ke free models chalenge.</div>
       </div>
     </div>
   )
