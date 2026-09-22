@@ -108,4 +108,11 @@ export const api = {
 
   // FIXED: Facebook login URL - endpoint /api/auth/facebook hai, /login-url nahi
   getFacebookLoginUrl: () => request('/api/auth/facebook'),
+
+  // Groups (connect Facebook/LinkedIn groups, post/schedule into them)
+  listGroups: () => request('/api/groups'),
+  createGroup: (payload) => request('/api/groups', { method: 'POST', body: JSON.stringify(payload) }),
+  deleteGroup: (id) => request(`/api/groups/${id}`, { method: 'DELETE' }),
+  postToGroups: (payload) => request('/api/groups/post', { method: 'POST', body: JSON.stringify(payload) }),
+  scheduleGroupPost: (payload) => request('/api/groups/schedule', { method: 'POST', body: JSON.stringify(payload) }),
 }
