@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { usePersistentState, clearPersistentState } from '../lib/usePersistentState.js'
 
@@ -15,6 +15,11 @@ const PLATFORM_OPTIONS = [
   { id: 'youtube', label: 'YouTube' },
   { id: 'google_business', label: 'Google Business' },
 ]
+
+const GROUP_PLATFORM_LABELS = {
+  fb_group: 'Facebook Group',
+  linkedin_group: 'LinkedIn Group',
+}
 
 const SHORT_TEXT_PLATFORMS = ['threads', 'twitter']
 const BLOG_PLATFORMS = ['blogger', 'substack']
@@ -96,6 +101,20 @@ export default function Publish() {
   const [error, setError] = useState('')
   const fileRef = useRef(null)
 
+  // Groups (connected on the Groups page) — selectable right here alongside channels
+  const [groups, setGroups] = useState([])
+  const [groupsLoading, setGroupsLoading] = useState(true)
+  const [selectedGroupIds, setSelectedGroupIds] = usePersistentState('publish.selectedGroupIds', [])
+  const [groupResults, setGroupResults] = useState(null)
+  const [groupScheduled, setGroupScheduled] = useState(null)
+
+  useEffect(() => {
+    api.listGroups()
+      .then((res) => setGroups(res.groups || res || []))
+      .catch(() => setGroups([]))
+      .finally(() => setGroupsLoading(false))
+  }, [])
+
   const needsTitle = platforms.some((p) => TITLE_PLATFORMS.includes(p))
   const needsShortCaption = platforms.some((p) => SHORT_TEXT_PLATFORMS.includes(p))
   const needsHashtags = platforms.some((p) => HASHTAG_PLATFORMS.includes(p))
@@ -107,6 +126,10 @@ export default function Publish() {
 
   const togglePlatform = (id) => {
     setPlatforms((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
+  }
+
+  const toggleGroupSelected = (id) => {
+    setSelectedGroupIds((prev) => (prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]))
   }
 
   const handleFileChange = async (e) => {
@@ -138,30 +161,56 @@ export default function Publish() {
   }
 
   const handleSubmit = async () => {
-    if (!caption.trim() || platforms.length === 0) return
+    const hasPlatforms = platforms.length > 0
+    const hasGroups = selectedGroupIds.length > 0
+    if (!caption.trim() || (!hasPlatforms && !hasGroups)) return
     setLoading(true)
     setError('')
     setResults(null)
     setScheduled(null)
+    setGroupResults(null)
+    setGroupScheduled(null)
     try {
-      const payload = {
-        caption,
-        title,
-        short_caption: shortCaption,
-        hashtags,
-        location,
-        labels: labelsText.split(',').map((l) => l.trim()).filter(Boolean),
-        media_urls: mediaUrl ? [mediaUrl] : [],
-        platforms,
+      const iso = mode === 'schedule' ? zonedTimeToUtcIso(scheduleAt, timezone) : null
+
+      // Channels (only if any selected)
+      if (hasPlatforms) {
+        const payload = {
+          caption,
+          title,
+          short_caption: shortCaption,
+          hashtags,
+          location,
+          labels: labelsText.split(',').map((l) => l.trim()).filter(Boolean),
+          media_urls: mediaUrl ? [mediaUrl] : [],
+          platforms,
+        }
+        if (mode === 'now') {
+          const res = await api.publish(payload)
+          setResults(res.published)
+        } else {
+          const res = await api.schedulePost({ ...payload, scheduled_at: iso })
+          setScheduled(res)
+        }
       }
-      if (mode === 'now') {
-        const res = await api.publish(payload)
-        setResults(res.published)
-      } else {
-        const iso = zonedTimeToUtcIso(scheduleAt, timezone)
-        const res = await api.schedulePost({ ...payload, scheduled_at: iso })
-        setScheduled(res)
+
+      // Groups (only if any selected) — separate endpoints/table on the backend
+      if (hasGroups) {
+        const groupPayload = {
+          group_ids: selectedGroupIds,
+          caption,
+          link: '',
+          media_urls: mediaUrl ? [mediaUrl] : [],
+        }
+        if (mode === 'now') {
+          const res = await api.postToGroups(groupPayload)
+          setGroupResults(res.published || res.results || res)
+        } else {
+          const res = await api.scheduleGroupPost({ ...groupPayload, scheduled_at: iso })
+          setGroupScheduled(res)
+        }
       }
+
       setTimeout(() => {
         setCaption('')
         setTitle('')
@@ -201,13 +250,15 @@ export default function Publish() {
     return icons[id] || 'P'
   }
 
+  const totalSelected = platforms.length + selectedGroupIds.length
+
   return (
     <div>
       <header className="mb-8">
         <div className="font-mono text-[11px] text-signal mb-1">02 - BROADCAST - 11 CHANNELS</div>
         <h1 className="font-display font-bold text-2xl text-offwhite">Publish to channels</h1>
         <p className="text-muted text-sm mt-1">
-          Ek caption, image ya video, jitne channels chaho — abhi ya schedule karke. TikTok + YouTube ke liye video zaroori. YouTube pe title zaroori hai. Google Business pe photo best hai.
+          Ek caption, image ya video, jitne channels ya groups chaho — abhi ya schedule karke. TikTok + YouTube ke liye video zaroori. YouTube pe title zaroori hai. Google Business pe photo best hai.
         </p>
       </header>
 
@@ -237,11 +288,11 @@ export default function Publish() {
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             rows={4}
-            placeholder="Apna final caption yahan paste karo. YouTube pe ye description banega, TikTok pe caption + hashtags"
+            placeholder="Apna final caption yahan paste karo. YouTube pe ye description banega, TikTok pe caption + hashtags, groups mein bhi ye hi text jayega"
             className="mt-2 w-full bg-ink border border-line rounded-lg px-3 py-2.5 text-sm text-offwhite placeholder:text-muted/60 focus:border-signal outline-none resize-none"
           />
           <p className="text-[11px] text-muted mt-1">
-            Facebook, Instagram, LinkedIn, Blogger, TikTok, YouTube, Google Business sab par jayega. YouTube pe description me hashtags bhi aayenge.
+            Facebook, Instagram, LinkedIn, Blogger, TikTok, YouTube, Google Business aur connected Groups sab par jayega. YouTube pe description me hashtags bhi aayenge.
           </p>
         </div>
 
@@ -419,8 +470,59 @@ export default function Publish() {
               )
             })}
           </div>
-          {platforms.length === 0 && (
-            <p className="text-[11px] text-coral mt-2">Kam se kam ek channel select karo</p>
+          {platforms.length === 0 && selectedGroupIds.length === 0 && (
+            <p className="text-[11px] text-coral mt-2">Kam se kam ek channel ya group select karo</p>
+          )}
+        </div>
+
+        {/* Connected groups — selectable right alongside channels */}
+        <div>
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">
+            Groups {selectedGroupIds.length > 0 && <span className="text-signal">({selectedGroupIds.length} selected)</span>}
+          </label>
+          {groupsLoading && <p className="text-[11px] text-muted mt-2">Loading groups...</p>}
+          {!groupsLoading && groups.length === 0 && (
+            <p className="text-[11px] text-muted mt-2">
+              Abhi koi group connect nahi. Groups page se ek connect karo, phir yahan dikhega.
+            </p>
+          )}
+          {!groupsLoading && groups.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {groups.map((g) => {
+                const isSelected = selectedGroupIds.includes(g.id)
+                const gStatus = groupResults ? (groupResults[g.id] || groupResults[String(g.id)]) : null
+                return (
+                  <div key={g.id} className="relative">
+                    <button
+                      onClick={() => toggleGroupSelected(g.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5 ${
+                        isSelected ? 'bg-signal/15 border-signal text-signal' : 'border-line text-muted hover:text-offwhite'
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold font-mono">
+                        {GROUP_PLATFORM_LABELS[g.platform] === 'Facebook Group' ? 'FB-G' : 'LI-G'}
+                      </span>
+                      {g.name}
+                      {gStatus && (
+                        <span className={`ml-1 w-2 h-2 rounded-full ${gStatus.status === 'published' || gStatus.success ? 'bg-signal' : gStatus.status === 'error' ? 'bg-coral' : 'bg-saffron'}`} />
+                      )}
+                    </button>
+                    {gStatus && (
+                      <div className={`absolute top-full left-0 mt-1 z-10 min-w-[200px] p-2 rounded-lg border text-[10px] font-mono shadow-lg backdrop-blur ${
+                        gStatus.status === 'published' || gStatus.success
+                          ? 'bg-signal/10 border-signal/30 text-signal'
+                          : 'bg-coral/10 border-coral/30 text-coral'
+                      }`}>
+                        <div className="font-bold">{g.name}: {gStatus.status === 'published' || gStatus.success ? 'Success' : 'Failed'}</div>
+                        <div className="mt-1 opacity-80 break-words">
+                          {gStatus.message || gStatus.error || (gStatus.detail && JSON.stringify(gStatus.detail).slice(0, 200)) || 'Published'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 
@@ -467,14 +569,14 @@ export default function Publish() {
 
         <button
           onClick={handleSubmit}
-          disabled={loading || uploading || !caption.trim() || platforms.length === 0 || (platforms.includes('youtube') && !title.trim())}
+          disabled={loading || uploading || !caption.trim() || (platforms.length === 0 && selectedGroupIds.length === 0) || (platforms.includes('youtube') && !title.trim())}
           className="w-full bg-signal text-ink font-semibold text-sm rounded-lg py-2.5 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
           {loading
             ? mode === 'now' ? 'Transmitting...' : 'Scheduling...'
             : mode === 'now'
-              ? `Publish to ${platforms.length} channel${platforms.length === 1 ? '' : 's'} ${platforms.includes('youtube') ? 'including YouTube' : platforms.includes('tiktok') ? 'including TikTok' : platforms.includes('google_business') ? 'including Google Business' : ''}`
-              : `Schedule for ${platforms.length} channel${platforms.length === 1 ? '' : 's'}`}
+              ? `Publish to ${totalSelected} destination${totalSelected === 1 ? '' : 's'} ${platforms.includes('youtube') ? 'including YouTube' : platforms.includes('tiktok') ? 'including TikTok' : platforms.includes('google_business') ? 'including Google Business' : ''}`
+              : `Schedule for ${totalSelected} destination${totalSelected === 1 ? '' : 's'}`}
         </button>
         {platforms.includes('youtube') && !title.trim() && (
           <p className="text-[11px] text-[#FF0000] font-medium">YouTube ke liye Title zaroori hai</p>
@@ -482,9 +584,14 @@ export default function Publish() {
         {error && <div className="text-coral text-sm font-mono bg-coral/10 border border-coral/20 p-3 rounded-lg">{error}</div>}
       </div>
 
-      {scheduled && (
-        <div className="mt-6 rounded-lg border border-signal/40 bg-signal/10 px-4 py-3 text-sm text-signal">
-          Scheduled — {new Date(scheduled.scheduled_at).toLocaleString()} ko {scheduled.platforms.join(', ')} par chala jayega.
+      {(scheduled || groupScheduled) && (
+        <div className="mt-6 rounded-lg border border-signal/40 bg-signal/10 px-4 py-3 text-sm text-signal space-y-1">
+          {scheduled && (
+            <div>Scheduled — {new Date(scheduled.scheduled_at).toLocaleString()} ko {scheduled.platforms.join(', ')} par chala jayega.</div>
+          )}
+          {groupScheduled && (
+            <div>Scheduled — {new Date(groupScheduled.scheduled_at).toLocaleString()} ko {selectedGroupIds.length} group(s) mein chala jayega.</div>
+          )}
         </div>
       )}
 
@@ -537,6 +644,36 @@ export default function Publish() {
           <div className="text-[11px] text-muted mt-3 p-3 bg-ink/50 border border-line/50 rounded-lg">
             Tip: Har channel ke neeche success/error dikhega. YouTube pe video 2-3 min me process hota hai. Google Business posts 7 din me expire hote hain. Agar fail hua to error message yahi dikhega.
           </div>
+        </div>
+      )}
+
+      {groupResults && (
+        <div className="mt-6 space-y-3">
+          <h3 className="text-xs font-bold text-offwhite uppercase tracking-wide">Group Post Results:</h3>
+          {Object.entries(groupResults).map(([groupId, res]) => {
+            const isSuccess = res.status === 'published' || res.success
+            const group = groups.find((g) => String(g.id) === String(groupId))
+            return (
+              <div
+                key={groupId}
+                className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 ${isSuccess ? 'bg-signal/10 border-signal/30' : 'bg-coral/10 border-coral/30'}`}
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="font-mono text-xs uppercase font-bold text-offwhite">{group?.name || groupId}</div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isSuccess ? 'bg-signal text-ink' : 'bg-coral text-white'}`}>
+                      {isSuccess ? 'SUCCESS' : 'FAILED'}
+                    </span>
+                  </div>
+                  <div className="text-xs mt-2 leading-relaxed">
+                    <div className={isSuccess ? 'text-signal' : 'text-coral'}>
+                      {res.message || res.error || (res.detail && JSON.stringify(res.detail).slice(0, 200)) || (isSuccess ? 'Posted successfully' : 'Failed')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
