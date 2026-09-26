@@ -4,20 +4,19 @@ import { startOpenRouterConnect, consumePendingOpenRouterCode } from '../lib/ope
 
 export default function Settings() {
   const [connected, setConnected] = useState({})
-  const [threadsCheck, setThreadsCheck] = useState({ connected: false })
-  const [linkedinCheck, setLinkedinCheck] = useState({ connected: false })
-  const [bloggerCheck, setBloggerCheck] = useState({ connected: false, has_token: false, has_blog: false, blog_name: '' })
-  const [tiktokCheck, setTiktokCheck] = useState({ connected: false, has_token: false })
-  const [substackCheck, setSubstackCheck] = useState({ connected: false, has_sid: false, publication_url: '' })
-  const [youtubeCheck, setYoutubeCheck] = useState({ connected: false, has_token: false, channel_title: '' })
-  const [gbCheck, setGbCheck] = useState({ connected: false, has_token: false, location_name: '' })
+  const [threadsCheck, setThreadsCheck] = useState(null)
+  const [linkedinCheck, setLinkedinCheck] = useState(null)
+  const [bloggerCheck, setBloggerCheck] = useState(null)
+  const [tiktokCheck, setTiktokCheck] = useState(null)
+  const [substackCheck, setSubstackCheck] = useState(null)
+  const [youtubeCheck, setYoutubeCheck] = useState(null)
+  const [gbCheck, setGbCheck] = useState(null)
   const [openrouterCheck, setOpenrouterCheck] = useState({ connected: false })
   const [bloggerBlogs, setBloggerBlogs] = useState([])
   const [gbLocations, setGbLocations] = useState([])
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [connecting, setConnecting] = useState('')
-  const [loading, setLoading] = useState(true)
   const [loadingBlogs, setLoadingBlogs] = useState(false)
   const [loadingGb, setLoadingGb] = useState(false)
   const [aiConnecting, setAiConnecting] = useState(false)
@@ -48,47 +47,63 @@ export default function Settings() {
     finally { setLoadingGb(false) }
   }
 
-  const load = async () => {
-    setLoading(true)
-    try {
-      const keysData = await api.getSettingsKeys().catch(() => ({}))
-      setConnected(keysData)
-      setOpenrouterCheck({ connected: !!keysData.OPENROUTER_API_KEY })
-      
-      const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
-      const headers = authHeaders()
-      
-      const [threadsRes, linkedinRes, bloggerRes, tiktokRes, substackRes, youtubeRes, gbRes] = await Promise.all([
-        fetch(`${base}/api/auth/threads/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/linkedin/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/blogger/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/tiktok/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/substack/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/youtube/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false })),
-        fetch(`${base}/api/auth/google-business/status`, { headers }).then(r => r.json()).catch(() => ({ connected: false }))
-      ])
-      
-      if (threadsRes) setThreadsCheck(threadsRes)
-      if (linkedinRes) setLinkedinCheck(linkedinRes)
-      if (bloggerRes) {
-        setBloggerCheck(bloggerRes)
-        if (bloggerRes.connected || bloggerRes.has_token) loadBloggerBlogs(base, headers)
-      }
-      if (tiktokRes) setTiktokCheck(tiktokRes)
-      if (substackRes) {
-        setSubstackCheck(substackRes)
-        if (substackRes.publication_url) setSubPubUrl(substackRes.publication_url)
-      }
-      if (youtubeRes) setYoutubeCheck(youtubeRes)
-      if (gbRes) {
-        setGbCheck(gbRes)
-        if (gbRes.connected || gbRes.has_token) loadGbLocations(base, headers)
-      }
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+  const load = () => {
+    // Har cheez apni jagah fire hoti hai aur jaise hi resolve ho, wahi card update ho
+    // jata hai — ek dusre ka wait nahi karte, is liye poori page ek slow call ke
+    // piche block nahi hoti.
+    api.getSettingsKeys()
+      .then((keysData) => {
+        setConnected(keysData)
+        setOpenrouterCheck({ connected: !!keysData.OPENROUTER_API_KEY })
+      })
+      .catch(() => {})
+
+    const base = api.baseUrl || 'https://nextgen-analytics-social-media-tool.fastapicloud.dev'
+    const headers = authHeaders()
+
+    fetch(`${base}/api/auth/threads/status`, { headers })
+      .then(r => r.json())
+      .then(setThreadsCheck)
+      .catch(() => setThreadsCheck({ connected: false }))
+
+    fetch(`${base}/api/auth/linkedin/status`, { headers })
+      .then(r => r.json())
+      .then(setLinkedinCheck)
+      .catch(() => setLinkedinCheck({ connected: false }))
+
+    fetch(`${base}/api/auth/blogger/status`, { headers })
+      .then(r => r.json())
+      .then((data) => {
+        setBloggerCheck(data)
+        if (data.connected || data.has_token) loadBloggerBlogs(base, headers)
+      })
+      .catch(() => setBloggerCheck({ connected: false }))
+
+    fetch(`${base}/api/auth/tiktok/status`, { headers })
+      .then(r => r.json())
+      .then(setTiktokCheck)
+      .catch(() => setTiktokCheck({ connected: false }))
+
+    fetch(`${base}/api/auth/substack/status`, { headers })
+      .then(r => r.json())
+      .then((data) => {
+        setSubstackCheck(data)
+        if (data.publication_url) setSubPubUrl(data.publication_url)
+      })
+      .catch(() => setSubstackCheck({ connected: false }))
+
+    fetch(`${base}/api/auth/youtube/status`, { headers })
+      .then(r => r.json())
+      .then(setYoutubeCheck)
+      .catch(() => setYoutubeCheck({ connected: false }))
+
+    fetch(`${base}/api/auth/google-business/status`, { headers })
+      .then(r => r.json())
+      .then((data) => {
+        setGbCheck(data)
+        if (data.connected || data.has_token) loadGbLocations(base, headers)
+      })
+      .catch(() => setGbCheck({ connected: false }))
   }
 
   useEffect(() => { 
@@ -249,24 +264,30 @@ export default function Settings() {
     } catch (e) { setError(e.message) }
   }
 
+  // null = abhi tak apna status nahi aaya (Checking...), object aane ke baad asal state
   const isFbConnected = !!connected.META_ACCESS_TOKEN || !!connected.FB_PAGE_ID
-  const isThreadsConnected = threadsCheck.connected || threadsCheck.has_token
-  const isLinkedinConnected = linkedinCheck.connected || linkedinCheck.has_token
-  const isBloggerConnected = bloggerCheck.connected || (bloggerCheck.has_token && bloggerCheck.has_blog)
-  const isTiktokConnected = tiktokCheck.connected || tiktokCheck.has_token
-  const isSubstackConnected = substackCheck.connected || substackCheck.has_sid
-  const isYoutubeConnected = youtubeCheck.connected || youtubeCheck.has_token
-  const isGbConnected = gbCheck.connected || gbCheck.has_token
+  const isThreadsConnected = !!threadsCheck && (threadsCheck.connected || threadsCheck.has_token)
+  const isLinkedinConnected = !!linkedinCheck && (linkedinCheck.connected || linkedinCheck.has_token)
+  const isBloggerConnected = !!bloggerCheck && (bloggerCheck.connected || (bloggerCheck.has_token && bloggerCheck.has_blog))
+  const isTiktokConnected = !!tiktokCheck && (tiktokCheck.connected || tiktokCheck.has_token)
+  const isSubstackConnected = !!substackCheck && (substackCheck.connected || substackCheck.has_sid)
+  const isYoutubeConnected = !!youtubeCheck && (youtubeCheck.connected || youtubeCheck.has_token)
+  const isGbConnected = !!gbCheck && (gbCheck.connected || gbCheck.has_token)
   const isAiConnected = openrouterCheck.connected
 
-  if (loading) {
+  const statusBadge = (checkValue, isConnected) => {
+    if (checkValue === null) {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border bg-ink text-muted/60 border-line">
+          <span className="w-1.5 h-1.5 border border-muted/60 border-t-transparent rounded-full animate-spin" />
+          Checking...
+        </span>
+      )
+    }
     return (
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-8 h-8 border-2 border-signal border-t-transparent rounded-full animate-spin" />
-          <div className="text-muted text-sm">Loading your connections...</div>
-        </div>
-      </div>
+      <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
+        {isConnected ? 'Connected' : 'Not Connected'}
+      </span>
     )
   }
 
@@ -436,9 +457,7 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Threads.net account.</p>
                 <div className="mt-3">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isThreadsConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isThreadsConnected ? 'Connected' : 'Not Connected'}
-                  </span>
+                  {statusBadge(threadsCheck, isThreadsConnected)}
                 </div>
               </div>
             </div>
@@ -462,9 +481,7 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Profile auto-connect.</p>
                 <div className="mt-3">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isLinkedinConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isLinkedinConnected ? 'Connected' : 'Not Connected'}
-                  </span>
+                  {statusBadge(linkedinCheck, isLinkedinConnected)}
                 </div>
               </div>
             </div>
@@ -488,10 +505,8 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Google Blogger blog auto posting.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isBloggerConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isBloggerConnected ? 'Connected' : 'Not Connected'}
-                  </span>
-                  {isBloggerConnected && bloggerCheck.blog_name && <span className="text-[11px] text-muted/70">{bloggerCheck.blog_name}</span>}
+                  {statusBadge(bloggerCheck, isBloggerConnected)}
+                  {isBloggerConnected && bloggerCheck?.blog_name && <span className="text-[11px] text-muted/70">{bloggerCheck.blog_name}</span>}
                 </div>
                 {bloggerBlogs.length > 0 && (
                   <div className="mt-3 space-y-2">
@@ -525,9 +540,7 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Video auto posting - MP4/MOV required.</p>
                 <div className="mt-3">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isTiktokConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isTiktokConnected ? 'Connected' : 'Not Connected'}
-                  </span>
+                  {statusBadge(tiktokCheck, isTiktokConnected)}
                 </div>
               </div>
             </div>
@@ -551,9 +564,7 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Newsletter publishing - cookie auth.</p>
                 <div className="mt-3">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isSubstackConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isSubstackConnected ? 'Connected' : 'Not Connected'}
-                  </span>
+                  {statusBadge(substackCheck, isSubstackConnected)}
                 </div>
               </div>
             </div>
@@ -580,10 +591,8 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Video upload — direct to channel.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isYoutubeConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isYoutubeConnected ? 'Connected' : 'Not Connected'}
-                  </span>
-                  {isYoutubeConnected && youtubeCheck.channel_title && <span className="text-[11px] text-muted/70 truncate max-w-[160px]">{youtubeCheck.channel_title}</span>}
+                  {statusBadge(youtubeCheck, isYoutubeConnected)}
+                  {isYoutubeConnected && youtubeCheck?.channel_title && <span className="text-[11px] text-muted/70 truncate max-w-[160px]">{youtubeCheck.channel_title}</span>}
                 </div>
               </div>
             </div>
@@ -607,10 +616,8 @@ export default function Settings() {
                 </h2>
                 <p className="text-[12.5px] text-muted mt-1.5">Google Business Profile — posts, photos, offers.</p>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full font-medium border ${isGbConnected ? 'bg-signal/10 text-signal border-signal/20' : 'bg-ink text-muted/80 border-line'}`}>
-                    {isGbConnected ? 'Connected' : 'Not Connected'}
-                  </span>
-                  {isGbConnected && gbCheck.location_name && <span className="text-[11px] text-muted/70 truncate max-w-[160px]">{gbCheck.location_name}</span>}
+                  {statusBadge(gbCheck, isGbConnected)}
+                  {isGbConnected && gbCheck?.location_name && <span className="text-[11px] text-muted/70 truncate max-w-[160px]">{gbCheck.location_name}</span>}
                 </div>
               </div>
             </div>
