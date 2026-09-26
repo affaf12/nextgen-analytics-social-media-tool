@@ -16,6 +16,7 @@ export default function Automation() {
   const [triggerType, setTriggerType] = useState('any_comment')
   const [keyword, setKeyword] = useState('')
   const [aiInstruction, setAiInstruction] = useState('')
+  const [requireFollowReminder, setRequireFollowReminder] = useState(true)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
@@ -42,11 +43,14 @@ export default function Automation() {
     setCreating(true)
     setCreateError('')
     try {
+      const finalInstruction = requireFollowReminder
+        ? `${aiInstruction.trim()}\n\nReply ki shuruaat mein friendly andaaz mein bolo ke pehle hamara account follow kar lein, phir aage baat karte hain.`
+        : aiInstruction.trim()
       await api.createAutomationRule({
         platform,
         trigger_type: triggerType,
         keyword: triggerType === 'keyword' ? keyword.trim() : '',
-        ai_instruction: aiInstruction.trim(),
+        ai_instruction: finalInstruction,
       })
       setKeyword('')
       setAiInstruction('')
@@ -157,6 +161,22 @@ export default function Automation() {
             AI har comment ke actual text ko dekh kar, isi instruction ke mutabiq har baar naya reply banayega.
           </p>
         </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={requireFollowReminder}
+            onChange={(e) => setRequireFollowReminder(e.target.checked)}
+            className="accent-signal"
+          />
+          <span className="text-sm text-offwhite">
+            DM mein "pehle follow karo" bhi likhwao
+          </span>
+        </label>
+        <p className="text-[11px] text-muted -mt-2">
+          Note: Meta ka API kisi bhi user ka follow-status check karne ka koi tareeqa nahi deta,
+          is liye ye sirf ek friendly request hogi AI ke reply mein — automatically enforce nahi ho sakta.
+        </p>
 
         <button
           onClick={handleCreate}
