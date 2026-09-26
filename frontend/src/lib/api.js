@@ -115,4 +115,10 @@ export const api = {
   deleteGroup: (id) => request(`/api/groups/${id}`, { method: 'DELETE' }),
   postToGroups: (payload) => request('/api/groups/post', { method: 'POST', body: JSON.stringify(payload) }),
   scheduleGroupPost: (payload) => request('/api/groups/schedule', { method: 'POST', body: JSON.stringify(payload) }),
+
+  // Automation (comment -> AI DM rules)
+  listAutomationRules: () => request('/api/automation-rules'),
+  createAutomationRule: (payload) => request('/api/automation-rules', { method: 'POST', body: JSON.stringify(payload) }),
+  updateAutomationRule: (id, payload) => request(`/api/automation-rules/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteAutomationRule: (id) => request(`/api/automation-rules/${id}`, { method: 'DELETE' }),
 }
