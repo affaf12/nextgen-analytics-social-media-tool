@@ -7,7 +7,8 @@ const links = [
   { to: '/app/calendar', label: 'Calendar', code: '03' },
   { to: '/app/leads', label: 'Leads', code: '04' },
   { to: '/app/groups', label: 'Groups', code: '05' },
-  { to: '/app/settings', label: 'Channels', code: '06' },
+  { to: '/app/automation', label: 'Automation', code: '06' },
+  { to: '/app/settings', label: 'Channels', code: '07' },
 ]
 
 export default function Sidebar() {
