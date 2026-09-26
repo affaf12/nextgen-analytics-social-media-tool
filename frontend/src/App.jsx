@@ -11,6 +11,7 @@ import Publish from './pages/Publish.jsx'
 import Calendar from './pages/Calendar.jsx'
 import Leads from './pages/Leads.jsx'
 import Groups from './pages/Groups.jsx'
+import Automation from './pages/Automation.jsx'
 import Settings from './pages/Settings.jsx'
 import Terms from './pages/Terms.jsx'
 import Privacy from './pages/Privacy.jsx'
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="calendar" element={<Calendar />} />
           <Route path="leads" element={<Leads />} />
           <Route path="groups" element={<Groups />} />
+          <Route path="automation" element={<Automation />} />
           <Route path="settings" element={<Settings />} />
         </Route>
 
