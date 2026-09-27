@@ -316,7 +316,7 @@ export default function Settings() {
 
         {/* AI Content Generation - FIRST - Button only */}
         <div className="group relative bg-surface border border-line hover:border-signal/40 rounded-[16px] p-5 sm:p-6 transition-all ring-1 ring-signal/10">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-signal rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-black font-black text-[16px]">AI</span>
@@ -342,7 +342,7 @@ export default function Settings() {
             <button
               onClick={() => handleConnect('openrouter')}
               disabled={aiConnecting || !!connecting}
-              className={`shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-signal text-black hover:brightness-110 shadow-glow'}`}
+              className={`w-full sm:w-auto shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-signal text-black hover:brightness-110 shadow-glow'}`}
             >
               {aiConnecting ? 'Connecting...' : isAiConnected ? 'Reconnect' : 'Connect'}
             </button>
@@ -351,7 +351,7 @@ export default function Settings() {
 
         {/* ChatGPT - FREE via OpenRouter OAuth - NO API KEY PASTE */}
         <div className="group relative bg-surface border border-line hover:border-[#10a37f]/40 rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#10a37f] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[14px]">GPT</span>
@@ -376,7 +376,7 @@ export default function Settings() {
             <button
               onClick={() => handleConnect('openrouter')}
               disabled={aiConnecting || !!connecting}
-              className={`shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-[#10a37f] text-white hover:brightness-110'}`}
+              className={`w-full sm:w-auto shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-[#10a37f] text-white hover:brightness-110'}`}
             >
               {aiConnecting ? 'Connecting...' : isAiConnected ? 'Connected ✓' : 'Connect'}
             </button>
@@ -385,7 +385,7 @@ export default function Settings() {
 
         {/* Claude AI - FREE via OpenRouter OAuth - NO API KEY PASTE */}
         <div className="group relative bg-surface border border-line hover:border-[#d4a27f]/40 rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#d4a27f] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-black font-black text-[14px]">C</span>
@@ -410,7 +410,7 @@ export default function Settings() {
             <button
               onClick={() => handleConnect('openrouter')}
               disabled={aiConnecting || !!connecting}
-              className={`shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-[#d4a27f] text-black hover:brightness-110'}`}
+              className={`w-full sm:w-auto shrink-0 font-bold text-[12.5px] rounded-[10px] px-5 py-2.5 transition-all ${isAiConnected ? 'bg-ink border border-line text-muted hover:text-offwhite' : 'bg-[#d4a27f] text-black hover:brightness-110'}`}
             >
               {aiConnecting ? 'Connecting...' : isAiConnected ? 'Connected ✓' : 'Connect'}
             </button>
@@ -419,7 +419,7 @@ export default function Settings() {
 
         {/* Facebook */}
         <div className="group relative bg-surface border border-line hover:border-[#1877F2]/40 rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#1877F2] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[18px]">f</span>
@@ -437,7 +437,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <button onClick={() => handleConnect('facebook')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isFbConnected ? 'bg-ink border border-line text-muted' : 'bg-[#1877F2] text-white'}`}>
+            <button onClick={() => handleConnect('facebook')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isFbConnected ? 'bg-ink border border-line text-muted' : 'bg-[#1877F2] text-white'}`}>
               {isFbConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
@@ -445,7 +445,7 @@ export default function Settings() {
 
         {/* Threads */}
         <div className="group relative bg-surface border border-line rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-black border border-white/[0.08] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-[15px]">@</span>
@@ -461,7 +461,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <button onClick={() => handleConnect('threads')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isThreadsConnected ? 'bg-ink border border-line text-muted' : 'bg-white text-black'}`}>
+            <button onClick={() => handleConnect('threads')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isThreadsConnected ? 'bg-ink border border-line text-muted' : 'bg-white text-black'}`}>
               {isThreadsConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
@@ -469,7 +469,7 @@ export default function Settings() {
 
         {/* LinkedIn */}
         <div className="group relative bg-surface border border-line rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#0A66C2] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[13px]">in</span>
@@ -485,7 +485,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <button onClick={() => handleConnect('linkedin')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isLinkedinConnected ? 'bg-ink border border-line text-muted' : 'bg-[#0A66C2] text-white'}`}>
+            <button onClick={() => handleConnect('linkedin')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isLinkedinConnected ? 'bg-ink border border-line text-muted' : 'bg-[#0A66C2] text-white'}`}>
               {isLinkedinConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
@@ -493,7 +493,7 @@ export default function Settings() {
 
         {/* Blogger */}
         <div className="group relative bg-surface border border-line rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#FF5722] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[16px]">B</span>
@@ -520,7 +520,7 @@ export default function Settings() {
                 )}
               </div>
             </div>
-            <button onClick={() => handleConnect('blogger')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isBloggerConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF5722] text-white'}`}>
+            <button onClick={() => handleConnect('blogger')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isBloggerConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF5722] text-white'}`}>
               {isBloggerConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
@@ -528,7 +528,7 @@ export default function Settings() {
 
         {/* TikTok */}
         <div className="group relative bg-surface border border-line rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-black rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[16px]">T</span>
@@ -544,7 +544,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <button onClick={() => handleConnect('tiktok')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isTiktokConnected ? 'bg-ink border border-line text-muted' : 'bg-black text-white border border-white/10'}`}>
+            <button onClick={() => handleConnect('tiktok')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isTiktokConnected ? 'bg-ink border border-line text-muted' : 'bg-black text-white border border-white/10'}`}>
               {isTiktokConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
@@ -552,7 +552,7 @@ export default function Settings() {
 
         {/* Substack */}
         <div className="group relative bg-surface border border-line rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#FF6719] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[16px]">S</span>
@@ -568,9 +568,9 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              {isSubstackConnected && <button onClick={handleSubstackDisconnect} className="shrink-0 font-medium text-[11px] rounded-[10px] px-3 py-2.5 bg-ink border border-line text-muted hover:text-red-400">Disconnect</button>}
-              <button onClick={() => handleConnect('substack')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isSubstackConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF6719] text-white'}`}>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {isSubstackConnected && <button onClick={handleSubstackDisconnect} className="flex-1 sm:flex-none shrink-0 font-medium text-[11px] rounded-[10px] px-3 py-2.5 bg-ink border border-line text-muted hover:text-red-400">Disconnect</button>}
+              <button onClick={() => handleConnect('substack')} disabled={!!connecting} className={`flex-1 sm:flex-none shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isSubstackConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF6719] text-white'}`}>
                 {isSubstackConnected ? 'Reconnect' : 'Connect'}
               </button>
             </div>
@@ -579,7 +579,7 @@ export default function Settings() {
 
         {/* YouTube */}
         <div className="group relative bg-surface border border-line hover:border-[#FF0000]/40 rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#FF0000] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[12px]">YT</span>
@@ -596,7 +596,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <button onClick={() => handleConnect('youtube')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isYoutubeConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF0000] text-white'}`}>
+            <button onClick={() => handleConnect('youtube')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isYoutubeConnected ? 'bg-ink border border-line text-muted' : 'bg-[#FF0000] text-white'}`}>
               {isYoutubeConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
@@ -604,7 +604,7 @@ export default function Settings() {
 
         {/* Google Business */}
         <div className="group relative bg-surface border border-line hover:border-[#4285F4]/40 rounded-[16px] p-5 sm:p-6 transition-all">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-11 h-11 bg-[#4285F4] rounded-[12px] flex items-center justify-center shrink-0">
                 <span className="text-white font-black text-[14px]">G</span>
@@ -621,7 +621,7 @@ export default function Settings() {
                 </div>
               </div>
             </div>
-            <button onClick={() => handleConnect('google_business')} disabled={!!connecting} className={`shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isGbConnected ? 'bg-ink border border-line text-muted' : 'bg-[#4285F4] text-white'}`}>
+            <button onClick={() => handleConnect('google_business')} disabled={!!connecting} className={`w-full sm:w-auto shrink-0 font-semibold text-[12.5px] rounded-[10px] px-5 py-2.5 ${isGbConnected ? 'bg-ink border border-line text-muted' : 'bg-[#4285F4] text-white'}`}>
               {isGbConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
