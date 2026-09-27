@@ -155,7 +155,7 @@ export default function Calendar() {
 
   return (
     <div>
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <header className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="font-mono text-[11px] text-signal mb-1">03 · CALENDAR</div>
           <h1 className="font-display font-bold text-2xl text-offwhite">Scheduled posts</h1>
@@ -165,7 +165,7 @@ export default function Calendar() {
           <button
             onClick={handleExportAll}
             disabled={exporting}
-            className="text-xs font-medium text-muted hover:text-offwhite border border-line rounded-lg px-3 py-1.5 disabled:opacity-50"
+            className="w-full sm:w-auto text-xs font-medium text-muted hover:text-offwhite border border-line rounded-lg px-3 py-1.5 disabled:opacity-50"
           >
             {exporting ? 'Exporting…' : 'Export all (CSV)'}
           </button>
@@ -174,13 +174,13 @@ export default function Calendar() {
 
       {error && <div className="text-coral text-sm font-mono mb-4">{error}</div>}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-1">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-1 w-full sm:w-auto">
           {['day', 'month', 'year'].map((m) => (
             <button
               key={m}
               onClick={() => setViewMode(m)}
-              className={`text-xs font-medium px-3 py-1.5 rounded-md capitalize transition ${
+              className={`flex-1 sm:flex-none text-xs font-medium px-3 py-1.5 rounded-md capitalize transition ${
                 viewMode === m ? 'bg-signal text-ink' : 'text-muted hover:text-offwhite'
               }`}
             >
@@ -189,22 +189,22 @@ export default function Calendar() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-between sm:justify-start">
           <button
             onClick={() => shiftPeriod(-1)}
-            className="w-8 h-8 rounded-lg border border-line text-muted hover:text-offwhite hover:border-signal"
+            className="w-8 h-8 shrink-0 rounded-lg border border-line text-muted hover:text-offwhite hover:border-signal"
           >‹</button>
-          <span className="text-sm font-medium text-offwhite w-48 text-center">{periodLabel}</span>
+          <span className="text-sm font-medium text-offwhite flex-1 sm:flex-none sm:w-48 text-center truncate px-1">{periodLabel}</span>
           <button
             onClick={() => shiftPeriod(1)}
-            className="w-8 h-8 rounded-lg border border-line text-muted hover:text-offwhite hover:border-signal"
+            className="w-8 h-8 shrink-0 rounded-lg border border-line text-muted hover:text-offwhite hover:border-signal"
           >›</button>
         </div>
 
         <button
           onClick={handleExport}
           disabled={exporting}
-          className="text-xs font-medium text-signal border border-signal/40 rounded-lg px-3 py-1.5 hover:bg-signal/10 disabled:opacity-50"
+          className="w-full sm:w-auto text-xs font-medium text-signal border border-signal/40 rounded-lg px-3 py-1.5 hover:bg-signal/10 disabled:opacity-50"
         >
           {exporting ? 'Exporting…' : `Download ${viewMode} report (CSV)`}
         </button>
@@ -227,9 +227,9 @@ export default function Calendar() {
 
       {viewMode === 'month' && (
         <>
-          <div className="grid grid-cols-7 gap-1.5 mb-6">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-6">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="text-[11px] text-muted text-center font-mono py-1">{d}</div>
+              <div key={d} className="text-[9px] sm:text-[11px] text-muted text-center font-mono py-1">{d}</div>
             ))}
             {cells.map((d, idx) => {
               const key = dayKey(d)
@@ -242,7 +242,7 @@ export default function Calendar() {
                   disabled={!d}
                   onClick={() => { setSelectedDay(d); }}
                   onDoubleClick={() => { if (d) { setSelectedDay(d); setViewMode('day') } }}
-                  className={`aspect-square rounded-lg border text-xs flex flex-col items-center justify-center gap-1 transition ${
+                  className={`aspect-square rounded-lg border text-[11px] sm:text-xs flex flex-col items-center justify-center gap-1 transition ${
                     !d ? 'border-transparent' :
                     isSelected ? 'border-signal bg-signal/10' :
                     isToday ? 'border-saffron/50' : 'border-line hover:border-signal/50'
@@ -260,7 +260,7 @@ export default function Calendar() {
               )
             })}
           </div>
-          <p className="text-[11px] text-muted -mt-4 mb-6">Kisi din par double-click karo us din ka Day view kholne ke liye.</p>
+          <p className="text-[11px] text-muted -mt-4 mb-6">Kisi din par double-click (mobile par double-tap) karo us din ka Day view kholne ke liye.</p>
 
           {selectedDay && selectedPosts.length > 0 && (
             <div className="mb-6">
@@ -321,7 +321,7 @@ function PostCard({ post, onDelete }) {
   return (
     <div className="bg-surface border border-line rounded-lg p-3 flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${STATUS_DOT[post.status]}`} />
           <span className="text-xs font-mono text-muted uppercase">{STATUS_LABEL[post.status] || post.status}</span>
           <span className="text-[11px] text-muted">{new Date(post.scheduled_at).toLocaleString()}</span>
