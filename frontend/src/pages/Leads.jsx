@@ -69,7 +69,7 @@ export default function Leads() {
 
   return (
     <div>
-      <header className="mb-6 flex items-start justify-between">
+      <header className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <div className="font-mono text-[11px] text-signal mb-1">03 · LEADS</div>
           <h1 className="font-display font-bold text-2xl text-offwhite">Pipeline</h1>
@@ -77,25 +77,25 @@ export default function Leads() {
         </div>
         <button
           onClick={() => setShowForm((s) => !s)}
-          className="bg-signal text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition shrink-0"
+          className="w-full sm:w-auto bg-signal text-ink font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition shrink-0"
         >
           + Add lead
         </button>
       </header>
 
       {stats && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-surface border border-line rounded-lg px-4 py-3">
-            <div className="text-[11px] text-muted uppercase">Total leads</div>
-            <div className="font-display text-xl text-offwhite mt-0.5">{stats.total}</div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+          <div className="bg-surface border border-line rounded-lg px-2.5 sm:px-4 py-3">
+            <div className="text-[10px] sm:text-[11px] text-muted uppercase">Total leads</div>
+            <div className="font-display text-lg sm:text-xl text-offwhite mt-0.5">{stats.total}</div>
           </div>
-          <div className="bg-surface border border-line rounded-lg px-4 py-3">
-            <div className="text-[11px] text-muted uppercase">Avg AI score</div>
-            <div className="font-display text-xl text-offwhite mt-0.5">{stats.avg_score}</div>
+          <div className="bg-surface border border-line rounded-lg px-2.5 sm:px-4 py-3">
+            <div className="text-[10px] sm:text-[11px] text-muted uppercase">Avg AI score</div>
+            <div className="font-display text-lg sm:text-xl text-offwhite mt-0.5">{stats.avg_score}</div>
           </div>
-          <div className="bg-surface border border-line rounded-lg px-4 py-3">
-            <div className="text-[11px] text-muted uppercase">Customers</div>
-            <div className="font-display text-xl text-offwhite mt-0.5">{stats.by_status?.Customer || 0}</div>
+          <div className="bg-surface border border-line rounded-lg px-2.5 sm:px-4 py-3">
+            <div className="text-[10px] sm:text-[11px] text-muted uppercase">Customers</div>
+            <div className="font-display text-lg sm:text-xl text-offwhite mt-0.5">{stats.by_status?.Customer || 0}</div>
           </div>
         </div>
       )}
@@ -152,7 +152,7 @@ export default function Leads() {
                       <div className="text-sm font-medium text-offwhite">{lead.name}</div>
                       <button
                         onClick={() => handleDelete(lead.id)}
-                        className="text-muted hover:text-coral text-xs opacity-0 group-hover:opacity-100 transition"
+                        className="text-muted hover:text-coral text-xs opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition"
                       >
                         ✕
                       </button>
